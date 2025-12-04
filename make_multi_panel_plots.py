@@ -147,7 +147,7 @@ def parse_filename(fname: str) -> Dict[str, Optional[str]]:
 def build_label(meta: Dict[str, Optional[str]], template: Optional[str]) -> str:
     data = {"method": meta.get("method") or "", "category": meta.get("category") or "",
             "metric": meta.get("metric") or "", "basename": meta.get("basename") or ""}
-    tmpl = template or "{category}"  # コメントアウト
+    tmpl = template or "{category}"
     try:
         lab = tmpl.format_map(data).strip(" 、,")
         return lab if lab else meta.get("basename", "")
@@ -166,6 +166,40 @@ def load_csv(path: str):
 def parse_order_list(s: Optional[str]) -> Optional[List[str]]:
     if not s: return None
     return [x.strip() for x in s.split(",") if x.strip()]
+
+def parse_step_value(s: Optional[str]) -> Optional[float]:
+    """ステップ数の文字列を数値に変換 (例: '8M' -> 8000000, '2.5M' -> 2500000)"""
+    if not s:
+        return None
+    s = s.strip().upper()
+    multipliers = {'K': 1e3, 'M': 1e6, 'B': 1e9}
+    for suffix, mult in multipliers.items():
+        if s.endswith(suffix):
+            try:
+                return float(s[:-1]) * mult
+            except ValueError:
+                return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+def filter_by_step_range(step: List[float], value: List[float], min_step: Optional[float], max_step: Optional[float]) -> Tuple[List[float], List[float]]:
+    """ステップ数の範囲でデータをフィルタリング"""
+    if min_step is None and max_step is None:
+        return step, value
+    
+    filtered_step = []
+    filtered_value = []
+    for s, v in zip(step, value):
+        if min_step is not None and s < min_step:
+            continue
+        if max_step is not None and s > max_step:
+            continue
+        filtered_step.append(s)
+        filtered_value.append(v)
+    
+    return filtered_step, filtered_value
 
 def sort_series(series: List[SeriesMeta], method_order: Optional[List[str]], cat_order: Optional[List[str]]):
     mrank = {m:i for i,m in enumerate(method_order)} if method_order else {}
@@ -195,7 +229,7 @@ def apply_map(rules, basename, default=None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default="./logs", help="Directory to scan for *-tag-*.csv (default: ./logs)")
-    ap.add_argument("--out", default="images", help="Output directory under --root (default: images)")  # デフォルトを "images" に変更
+    ap.add_argument("--out", default="images", help="Output directory under --root (default: images)")
     ap.add_argument("--dpi", type=int, default=300, help="PNG DPI")
     ap.add_argument("--oneplot", default=None, help="Metric to overlay on a single axes")
     ap.add_argument("--filter", default=None, help="Regex to filter basenames")
@@ -207,11 +241,21 @@ def main():
     ap.add_argument("--legend-method-order", default=None, help='Comma list e.g. "IQL,QMIX"')
     ap.add_argument("--legend-category-order", default="従来手法,関連研究,提案手法", help='Comma list; default "従来手法,関連研究,提案手法"')
     ap.add_argument("--save-pdf", action="store_true", help="Also save PDF")
+    ap.add_argument("--max-step", type=str, default=None, help="Max step to display (e.g., '8M', '5000000', '2.5M')")
+    ap.add_argument("--min-step", type=str, default=None, help="Min step to display (e.g., '1M', '100000')")
     args = ap.parse_args()
 
     # 出力ディレクトリを作成
     output_dir = os.path.join(args.root, args.out)
-    os.makedirs(output_dir, exist_ok=True)  # ディレクトリが存在しない場合に作成
+    os.makedirs(output_dir, exist_ok=True)
+
+    # ステップ範囲のパース
+    max_step = parse_step_value(args.max_step)
+    min_step = parse_step_value(args.min_step)
+    if max_step:
+        print(f"Max step limit: {max_step:,.0f}")
+    if min_step:
+        print(f"Min step limit: {min_step:,.0f}")
 
     # collect CSVs
     paths = []
@@ -275,6 +319,11 @@ def main():
             label = build_label(meta, args.label_template)
             try:
                 step, value = load_csv(p)
+                # ステップ範囲でフィルタリング
+                step, value = filter_by_step_range(step, value, min_step, max_step)
+                if not step:  # フィルタリング後にデータがない場合はスキップ
+                    print(f"Skip {os.path.basename(p)}: No data in step range")
+                    continue
             except Exception as e:
                 print(f"Skip {os.path.basename(p)}: {e}")
                 continue
@@ -299,7 +348,7 @@ def main():
             colors = ["blue", "red", "orange", "purple"]  # 色のリストを定義
             for i, s in enumerate(series):
                 color = colors[i % len(colors)]  # 色を順番に適用
-                ax.plot(s.step, s.value, linewidth=1.2, label=s.label, color=color)  # 色を指定
+                ax.plot(s.step, s.value, linewidth=1.2, label=s.label, color=color)
             ax.set_xlabel("Training steps")
             if "rate" in metric or "ratio" in metric or "mean" in metric:
                 ax.set_ylabel("Rate")
@@ -311,11 +360,11 @@ def main():
             ax.legend(fontsize=20, loc="best", framealpha=0.9)
 
             plt.tight_layout()
-            out_png = os.path.join(output_dir, f"{map_name}_{agent_count}agent_{metric}.png")  # メトリクス名を含める
+            out_png = os.path.join(output_dir, f"{map_name}_{agent_count}agent_{metric}.png")
             fig.savefig(out_png, dpi=args.dpi, bbox_inches="tight")
             print(f"Saved: {out_png}")
             if args.save_pdf:
-                out_pdf = os.path.join(output_dir, f"{map_name}_{agent_count}agent_{metric}.pdf")  # メトリクス名を含める
+                out_pdf = os.path.join(output_dir, f"{map_name}_{agent_count}agent_{metric}.pdf")
                 fig.savefig(out_pdf, bbox_inches="tight")
                 print(f"Saved: {out_pdf}")
             plt.close(fig)
