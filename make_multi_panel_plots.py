@@ -345,7 +345,7 @@ def main():
             fig, ax = plt.subplots(nrows, ncols, figsize=(10, 7.5))
 
             series = sort_series(by_metric[metric], method_order, category_order)
-            colors = ["#03AF7A", "#005AFF", "#FF4B00"]  # 色覚多様性対応の3色FF4B00
+            colors = ["#03AF7A", "#005AFF", "#FF4B00"]  # 色覚多様性対応の3色005AFF
             for i, s in enumerate(series):
                 color = colors[i % len(colors)]  # 色を順番に適用
                 ax.plot(s.step, s.value, linewidth=1.2, label=s.label, color=color)
