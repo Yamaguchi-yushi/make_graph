@@ -9,18 +9,42 @@ from typing import List, Tuple, Dict, Optional
 
 import pandas as pd
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use("module://matplotlib.backends.backend_cairo")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager, rcParams
 
-# Japanese font fallback (optional)
-for _name in ["Hiragino Sans", "Noto Sans CJK JP", "Yu Gothic", "IPAexGothic"]:
+# Japanese font fallback (optional) - より強力なフォント設定
+_font_found = False
+for _name in ["Hiragino Sans", "Hiragino Kaku Gothic Pro", "Noto Sans CJK JP", "Yu Gothic", "IPAexGothic", "TakaoPGothic"]:
     if any(_name in f.name for f in font_manager.fontManager.ttflist):
         rcParams["font.family"] = _name
+        _font_found = True
+        print(f"Using font: {_name}")
         break
+
+# フォントが見つからない場合のフォールバック
+if not _font_found:
+    # システムにインストールされている日本語フォントを探す
+    jp_fonts = [f for f in font_manager.fontManager.ttflist 
+                if any(name in f.name for name in ['Gothic', 'Hiragino', 'Noto', 'IPA', 'Takao', 'Meiryo'])]
+    if jp_fonts:
+        rcParams["font.family"] = jp_fonts[0].name
+        print(f"Using fallback font: {jp_fonts[0].name}")
+
 rcParams["axes.unicode_minus"] = False
-rcParams["pdf.fonttype"] = 42
-rcParams["ps.fonttype"]  = 42
+
+# PDF/PS用のフォント設定（Type 3 = フォントをアウトライン化）
+rcParams["pdf.fonttype"] = 3
+rcParams["ps.fonttype"]  = 3
+
+# グローバルフォントサイズ設定（軸ラベルを大きく）
+rcParams["font.size"] = 18           # 基本フォントサイズ
+rcParams["axes.titlesize"] = 24      # タイトル
+rcParams["axes.labelsize"] = 30      # 軸ラベル（大きく）
+rcParams["xtick.labelsize"] = 25     # x軸目盛り
+rcParams["ytick.labelsize"] = 25     # y軸目盛り
+rcParams["legend.fontsize"] = 30     # 凡例（ここで設定）
+rcParams["legend.title_fontsize"] = 20  # 凡例タイトル
 
 CANONICAL = {
     "qmix":"QMIX","vdn":"VDN","iql":"IQL","dqn":"DQN",
@@ -91,7 +115,7 @@ class SeriesMeta:
     step: List[float]
     value: List[float]
     method: Optional[str]
-    category: Optional[str]
+    suffix: Optional[str]  # category から suffix に変更
     label: str
     src: str
 
@@ -107,6 +131,20 @@ def parse_mapping(s: Optional[str]):
             out.append((re.compile(p.strip(), re.IGNORECASE), p.strip()))
     return out
 
+def extract_suffix(name_noext: str) -> str:
+    """ファイル名の.csv直前の最後の_以降の文字列を抽出
+    
+    例: 
+    - "run-qmix_...-tag-collision_mean_関連研究" -> "関連研究"
+    - "run-qmix_...-tag-goal_rate_提案手法" -> "提案手法"
+    - "run-qmix_...-tag-collision_mean_二段階学習" -> "二段階学習"
+    """
+    # 最後の_以降を取得
+    last_underscore = name_noext.rfind("_")
+    if last_underscore != -1 and last_underscore < len(name_noext) - 1:
+        return name_noext[last_underscore + 1:]
+    return name_noext  # _がない場合は全体を返す
+
 def parse_filename(fname: str) -> Dict[str, Optional[str]]:
     base = os.path.basename(fname)
     name_noext, _ = os.path.splitext(base)
@@ -119,6 +157,9 @@ def parse_filename(fname: str) -> Dict[str, Optional[str]]:
         m = re.match(r"([A-Za-z0-9_]+)", rest)
         if m:
             metric = m.group(1).rstrip("_")
+
+    # suffix: 最後の_以降の文字列を抽出
+    suffix = extract_suffix(name_noext)
 
     # category from Japanese tokens (suffix preferred)
     category = None
@@ -142,12 +183,15 @@ def parse_filename(fname: str) -> Dict[str, Optional[str]]:
             category = "関連研究"
 
     method = detect_method_label(fname)
-    return dict(metric=metric, method=method, category=category, basename=base)
+    return dict(metric=metric, method=method, category=category, suffix=suffix, basename=base)
 
 def build_label(meta: Dict[str, Optional[str]], template: Optional[str]) -> str:
-    data = {"method": meta.get("method") or "", "category": meta.get("category") or "",
-            "metric": meta.get("metric") or "", "basename": meta.get("basename") or ""}
-    tmpl = template or "{category}"
+    data = {"method": meta.get("method") or "", 
+            "category": meta.get("category") or "",
+            "metric": meta.get("metric") or "", 
+            "suffix": meta.get("suffix") or "",
+            "basename": meta.get("basename") or ""}
+    tmpl = template or "{suffix}"  # デフォルトをsuffixに変更
     try:
         lab = tmpl.format_map(data).strip(" 、,")
         return lab if lab else meta.get("basename", "")
@@ -184,6 +228,21 @@ def parse_step_value(s: Optional[str]) -> Optional[float]:
     except ValueError:
         return None
 
+def parse_figsize(s: Optional[str]) -> Tuple[float, float]:
+    """figsize文字列をパース (例: '10x7.5', '12,8', '16:9')"""
+    if not s:
+        return (10, 7.5)  # デフォルト
+    # 区切り文字: x, X, ,, :
+    for sep in ['x', 'X', ',', ':']:
+        if sep in s:
+            parts = s.split(sep)
+            if len(parts) == 2:
+                try:
+                    return (float(parts[0].strip()), float(parts[1].strip()))
+                except ValueError:
+                    pass
+    return (10, 7.5)  # パース失敗時のデフォルト
+
 def filter_by_step_range(step: List[float], value: List[float], min_step: Optional[float], max_step: Optional[float]) -> Tuple[List[float], List[float]]:
     """ステップ数の範囲でデータをフィルタリング"""
     if min_step is None and max_step is None:
@@ -201,12 +260,13 @@ def filter_by_step_range(step: List[float], value: List[float], min_step: Option
     
     return filtered_step, filtered_value
 
-def sort_series(series: List[SeriesMeta], method_order: Optional[List[str]], cat_order: Optional[List[str]]):
+def sort_series(series: List[SeriesMeta], method_order: Optional[List[str]], suffix_order: Optional[List[str]]):
     mrank = {m:i for i,m in enumerate(method_order)} if method_order else {}
-    crank = {c:i for i,c in enumerate(cat_order)} if cat_order else {}
+    srank = {s:i for i,s in enumerate(suffix_order)} if suffix_order else {}
     def key(s: SeriesMeta):
-        return (mrank.get(s.method, 10**9), crank.get(s.category, 10**9),
-                s.method or "", s.category or "", s.src)
+        # suffixで並び替え
+        return (mrank.get(s.method, 10**9), srank.get(s.suffix, 10**9),
+                s.method or "", s.suffix or "", s.src)
     return sorted(series, key=key)
 
 def extract_map_name(basename: str) -> str:
@@ -231,16 +291,20 @@ def main():
     ap.add_argument("--root", default="./logs", help="Directory to scan for *-tag-*.csv (default: ./logs)")
     ap.add_argument("--out", default="images", help="Output directory under --root (default: images)")
     ap.add_argument("--dpi", type=int, default=300, help="PNG DPI")
+    ap.add_argument("--figsize", default="10x7.5", help="Figure size as 'WIDTHxHEIGHT' (e.g., '10x7.5', '12x6', '16x9')")
     ap.add_argument("--oneplot", default=None, help="Metric to overlay on a single axes")
     ap.add_argument("--filter", default=None, help="Regex to filter basenames")
     ap.add_argument("--map", default=None, help="Filter by map name (e.g., '8x5-v2')")
     ap.add_argument("--agents", default=None, help="Filter by agent count (e.g., '3')")
     ap.add_argument("--method-map", default=None, help="Map filename REGEX to method label")
     ap.add_argument("--category-map", default=None, help="Map filename REGEX to category label")
-    ap.add_argument("--label-template", default=None, help='Legend template (default "{category}")')
+    ap.add_argument("--label-template", default=None, help='Legend template (default "{suffix}"). Available: {suffix}, {category}, {method}, {metric}, {basename}')
     ap.add_argument("--legend-method-order", default=None, help='Comma list e.g. "IQL,QMIX"')
-    ap.add_argument("--legend-category-order", default="従来手法,関連研究,提案手法", help='Comma list; default "従来手法,関連研究,提案手法"')
+    ap.add_argument("--legend-suffix-order", default=None, help='Comma list e.g. "従来手法,関連研究,提案手法,二段階学習"')
+    ap.add_argument("--legend-category-order", default=None, help='Alias for --legend-suffix-order')  # エイリアスとして追加
     ap.add_argument("--save-pdf", action="store_true", help="Also save PDF")
+    ap.add_argument("--save-eps", action="store_true", help="Also save EPS")
+    ap.add_argument("--no-legend", action="store_true", help="Hide legend")
     ap.add_argument("--max-step", type=str, default=None, help="Max step to display (e.g., '8M', '5000000', '2.5M')")
     ap.add_argument("--min-step", type=str, default=None, help="Min step to display (e.g., '1M', '100000')")
     args = ap.parse_args()
@@ -248,6 +312,10 @@ def main():
     # 出力ディレクトリを作成
     output_dir = os.path.join(args.root, args.out)
     os.makedirs(output_dir, exist_ok=True)
+
+    # figsizeのパース
+    figsize = parse_figsize(args.figsize)
+    print(f"Figure size: {figsize[0]} x {figsize[1]}")
 
     # ステップ範囲のパース
     max_step = parse_step_value(args.max_step)
@@ -276,9 +344,11 @@ def main():
             return
 
     method_rules = parse_mapping(args.method_map)
-    category_rules = parse_mapping(args.category_map)
     method_order = parse_order_list(args.legend_method_order)
-    category_order = parse_order_list(args.legend_category_order) or ["従来手法", "関連研究", "提案手法"]
+    
+    # legend-category-order が指定された場合も suffix_order として扱う
+    suffix_order_str = args.legend_suffix_order or args.legend_category_order
+    suffix_order = parse_order_list(suffix_order_str)
 
     # マップ名とエージェント数でグループ化
     map_groups: Dict[Tuple[str, str], List[str]] = {}
@@ -315,8 +385,9 @@ def main():
         for p in map_paths:
             meta = parse_filename(p)
             meta["method"] = apply_map(method_rules, meta["basename"], meta.get("method"))
-            meta["category"] = apply_map(category_rules, meta["basename"], meta.get("category"))
+            # suffixを使用（categoryではなく）
             label = build_label(meta, args.label_template)
+            print(f"  Label for {os.path.basename(p)}: '{label}' (suffix: '{meta.get('suffix')}')")
             try:
                 step, value = load_csv(p)
                 # ステップ範囲でフィルタリング
@@ -327,7 +398,8 @@ def main():
             except Exception as e:
                 print(f"Skip {os.path.basename(p)}: {e}")
                 continue
-            all_series.append(SeriesMeta(meta["metric"], step, value, meta["method"], meta["category"], label, os.path.basename(p)))
+            # SeriesMetaにsuffixを渡す（categoryの代わり）
+            all_series.append(SeriesMeta(meta["metric"], step, value, meta["method"], meta.get("suffix"), label, os.path.basename(p)))
 
         by_metric: Dict[str, List[SeriesMeta]] = {}
         for s in all_series:
@@ -340,34 +412,64 @@ def main():
         metrics = metrics[:max(1, min(4, len(metrics)))]
 
         for metric in metrics:  # 各メトリクスごとに画像を生成
-            n = 1  # 各メトリクスは1つの画像に
             nrows, ncols = 1, 1  # 1行1列のプロット
-            fig, ax = plt.subplots(nrows, ncols, figsize=(10, 7.5))
+            fig, ax = plt.subplots(nrows, ncols, figsize=figsize)
 
-            series = sort_series(by_metric[metric], method_order, category_order)
-            colors = ["#03AF7A", "#005AFF", "#FF4B00"]  # 色覚多様性対応の3色005AFF
+            series = sort_series(by_metric[metric], method_order, suffix_order)
+            colors = ["#03AF7A", "#005AFF", "red", "#4DC4FF", "#F6AA00", "#FFF100"]  # 色覚多様性対応
             for i, s in enumerate(series):
                 color = colors[i % len(colors)]  # 色を順番に適用
                 ax.plot(s.step, s.value, linewidth=1.2, label=s.label, color=color)
             ax.set_xlabel("Training steps")
-            if "rate" in metric or "ratio" in metric or "mean" in metric:
-                ax.set_ylabel("Rate")
-            elif "cost" in metric:
+            
+            # メトリクス名から縦軸ラベルを設定
+            metric_lower = metric.lower()
+            if "goal" in metric_lower:
+                ax.set_ylabel("Goal rate")
+            elif "collision" in metric_lower:
+                ax.set_ylabel("Collision rate")
+            elif "timeup" in metric_lower or "timeout" in metric_lower:
+                ax.set_ylabel("Timeup rate")
+            elif "success" in metric_lower:
+                ax.set_ylabel("Success rate")
+            elif "step" in metric_lower or "episode_len" in metric_lower:
+                ax.set_ylabel("Episode length")
+            elif "reward" in metric_lower:
+                ax.set_ylabel("Reward")
+            elif "cost" in metric_lower:
                 ax.set_ylabel("Cost")
+            elif "rate" in metric_lower or "ratio" in metric_lower:
+                ax.set_ylabel("Rate")
             else:
                 ax.set_ylabel("Value")
+            
             ax.grid(True, alpha=0.3)
-            ax.legend(fontsize=20, loc="best", framealpha=0.9)
+            if not args.no_legend:
+                ax.legend(loc="best", framealpha=0.9)  # rcParams["legend.fontsize"]を使用
 
             plt.tight_layout()
-            out_png = os.path.join(output_dir, f"{map_name}_{agent_count}agent_{metric}.png")
+
+            figsize_str = f"{int(figsize[0])}-{int(figsize[1])}"
+
+            # PNG（必要なら残す）
+            out_png = os.path.join(output_dir, f"{map_name}_{agent_count}agent_{metric}_{figsize_str}.png")
             fig.savefig(out_png, dpi=args.dpi, bbox_inches="tight")
             print(f"Saved: {out_png}")
+
+            # PDF（ベクターで直接保存：ここが重要）
             if args.save_pdf:
-                out_pdf = os.path.join(output_dir, f"{map_name}_{agent_count}agent_{metric}.pdf")
-                fig.savefig(out_pdf, bbox_inches="tight")
+                out_pdf = os.path.join(output_dir, f"{map_name}_{agent_count}agent_{metric}_{figsize_str}.pdf")
+                fig.savefig(out_pdf, format="pdf", bbox_inches="tight")
                 print(f"Saved: {out_pdf}")
+
+            # EPS（従来どおり）
+            if args.save_eps:
+                out_eps = os.path.join(output_dir, f"{map_name}_{agent_count}agent_{metric}_{figsize_str}.eps")
+                fig.savefig(out_eps, format="eps", bbox_inches="tight")
+                print(f"Saved: {out_eps}")
+
             plt.close(fig)
+
 
 if __name__ == "__main__":
     main()
