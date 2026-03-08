@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Graph Visualizer — CSV可視化ツール</title>
+  <meta name="description" content="CSVファイルからインタラクティブなグラフを作成・エクスポートするツール">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- ── Header ── -->
+    <header class="app-header" id="app-header">
+      <div class="header-content">
+        <div class="logo">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="7" fill="url(#grad1)"/>
+            <path d="M6 20L10 12L14 16L18 8L22 14" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs><linearGradient id="grad1" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+          </svg>
+          <h1>Graph Visualizer</h1>
+        </div>
+        <p class="subtitle">CSVファイルからインタラクティブなグラフを作成</p>
+      </div>
+    </header>
+
+    <!-- ── Main Layout ── -->
+    <div class="main-layout">
+      <!-- Left Panel: Settings & Files -->
+      <aside class="sidebar" id="sidebar">
+        <!-- Global Params -->
+        <section class="panel" id="params-panel">
+          <div class="panel-header" onclick="togglePanel('params-content')">
+            <h2><span class="icon">⚙️</span> グラフ設定</h2>
+            <span class="chevron" id="params-content-chevron">▼</span>
+          </div>
+          <div class="panel-content" id="params-content">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="param-map-name">マップ名</label>
+                <input type="text" id="param-map-name" placeholder="自動検出">
+              </div>
+              <div class="form-group">
+                <label for="param-agent-count">エージェント数</label>
+                <input type="text" id="param-agent-count" placeholder="自動検出">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="param-width">幅</label>
+                <input type="number" id="param-width" value="10" min="4" max="30" step="0.5">
+              </div>
+              <div class="form-group">
+                <label for="param-height">高さ</label>
+                <input type="number" id="param-height" value="7.5" min="3" max="20" step="0.5">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="param-min-step">ステップ最小</label>
+                <input type="text" id="param-min-step" placeholder="例: 0, 1M">
+              </div>
+              <div class="form-group">
+                <label for="param-max-step">ステップ最大</label>
+                <input type="text" id="param-max-step" placeholder="例: 8M">
+              </div>
+            </div>
+            <input type="hidden" id="param-line-width" value="1.2">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="param-font-label">軸ラベル</label>
+                <input type="number" id="param-font-label" value="30" min="8" max="60" step="1">
+              </div>
+              <div class="form-group">
+                <label for="param-font-tick">軸の数値</label>
+                <input type="number" id="param-font-tick" value="25" min="8" max="60" step="1">
+              </div>
+              <div class="form-group">
+                <label for="param-font-legend">凡例</label>
+                <input type="number" id="param-font-legend" value="30" min="8" max="60" step="1">
+              </div>
+            </div>
+            <div class="form-row">
+              <input type="hidden" id="param-dpi" value="300">
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" id="param-legend" checked>
+                  凡例を表示
+                </label>
+                <label>
+                  <input type="checkbox" id="param-grid" checked>
+                  グリッド
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Methods & Files -->
+        <section class="panel" id="methods-panel">
+          <div class="panel-header">
+            <h2><span class="icon">🔬</span> 手法</h2>
+            <button class="btn btn-primary btn-sm" id="add-method-btn" onclick="addMethod()">
+              <span>＋ 手法追加</span>
+            </button>
+          </div>
+          <div class="metrics-list" id="methods-list">
+            <!-- Dynamically populated -->
+            <div class="empty-state" id="empty-state">
+              <p>「＋ 手法追加」ボタンで<br>手法を追加してください<br><small>例: 従来手法, 提案手法, 関連研究</small></p>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <!-- Right Panel: Graph Preview -->
+      <main class="graph-area" id="graph-area">
+        <div class="graph-toolbar" id="graph-toolbar">
+          <div class="tab-bar" id="tab-bar">
+            <!-- tabs dynamically -->
+          </div>
+          <div class="export-buttons">
+            <button class="btn btn-ghost btn-sm" onclick="exportCurrent('png')" id="export-png-btn">
+              <span>📥 PNG</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="exportCurrent('pdf')" id="export-pdf-btn">
+              <span>📄 PDF</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="exportCurrent('eps')" id="export-eps-btn">
+              <span>📐 EPS</span>
+            </button>
+            <span class="export-divider"></span>
+            <button class="btn btn-primary btn-sm" onclick="exportAll('png')" id="export-all-btn">
+              <span>📦 全保存</span>
+            </button>
+          </div>
+        </div>
+        <div class="graph-container" id="graph-container">
+          <div class="graph-placeholder" id="graph-placeholder">
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+              <rect x="8" y="8" width="64" height="64" rx="10" stroke="#4b5563" stroke-width="2" stroke-dasharray="6 4"/>
+              <path d="M20 56L30 38L40 46L52 24L62 40" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="30" cy="38" r="3" fill="#6366f1"/>
+              <circle cx="40" cy="46" r="3" fill="#6366f1"/>
+              <circle cx="52" cy="24" r="3" fill="#6366f1"/>
+            </svg>
+            <p>指標を追加してCSVファイルをアップロードすると<br>ここにグラフが表示されます</p>
+          </div>
+          <div id="loading-overlay" class="loading-overlay" style="display:none;">
+            <div class="spinner"></div>
+            <p>画像を生成中...</p>
+          </div>
+          <div id="preview-wrapper" style="width:100%;height:100%;display:none; justify-content:center; align-items:center; overflow:auto;">
+            <img id="matplotlib-preview" style="max-width:100%; max-height:100%; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" alt="グラフプレビュー">
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast notification container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
