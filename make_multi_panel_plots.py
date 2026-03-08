@@ -4,6 +4,7 @@
 # NEW: --legend-method-order / --legend-category-order to control legend order.
 
 import argparse, os, re, glob, json
+import numpy as np
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Optional
 
@@ -269,6 +270,57 @@ def sort_series(series: List[SeriesMeta], method_order: Optional[List[str]], suf
                 s.method or "", s.suffix or "", s.src)
     return sorted(series, key=key)
 
+
+def aggregate_series_for_plot(series: List[SeriesMeta]) -> List[dict]:
+    """同じlabelを持つ複数のSeriesMetaを集約し、平均+min/max rangeを計算する。
+
+    1本だけのlabelはそのまま返す。複数あるlabelは共通step軸に補間して
+    mean/min/maxを計算する。戻り値はdictのリスト。
+    """
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for s in series:
+        groups[s.label].append(s)
+
+    result = []
+    for label, items in groups.items():
+        if len(items) == 1:
+            result.append({
+                "step": items[0].step,
+                "value": items[0].value,
+                "label": items[0].label,
+                "aggregated": False,
+            })
+        else:
+            # 全seriesのstep範囲のunionを作り、共通step軸に補間
+            all_steps = set()
+            for s in items:
+                all_steps.update(s.step)
+            common_step = np.array(sorted(all_steps))
+
+            interpolated = []
+            for s in items:
+                arr_step = np.array(s.step)
+                arr_val = np.array(s.value)
+                interp_val = np.interp(common_step, arr_step, arr_val)
+                interpolated.append(interp_val)
+
+            stacked = np.stack(interpolated, axis=0)
+            mean_val = np.mean(stacked, axis=0)
+            min_val = np.min(stacked, axis=0)
+            max_val = np.max(stacked, axis=0)
+
+            result.append({
+                "step": common_step.tolist(),
+                "value": mean_val.tolist(),
+                "value_min": min_val.tolist(),
+                "value_max": max_val.tolist(),
+                "label": label,
+                "aggregated": True,
+                "n_runs": len(items),
+            })
+    return result
+
 def extract_map_name(basename: str) -> str:
     # Extract map name from the basename (exclude date part)
     m = re.search(r"map_([a-zA-Z0-9xX]+)-v\d+", basename)
@@ -416,10 +468,13 @@ def main():
             fig, ax = plt.subplots(nrows, ncols, figsize=figsize)
 
             series = sort_series(by_metric[metric], method_order, suffix_order)
+            agg_series = aggregate_series_for_plot(series)
             colors = ["#03AF7A", "#005AFF", "red", "#4DC4FF", "#F6AA00", "#FFF100"]  # 色覚多様性対応
-            for i, s in enumerate(series):
+            for i, s in enumerate(agg_series):
                 color = colors[i % len(colors)]  # 色を順番に適用
-                ax.plot(s.step, s.value, linewidth=1.2, label=s.label, color=color)
+                ax.plot(s["step"], s["value"], linewidth=1.2, label=s["label"], color=color)
+                if s.get("aggregated") and "value_min" in s and "value_max" in s:
+                    ax.fill_between(s["step"], s["value_min"], s["value_max"], alpha=0.2, color=color)
             ax.set_xlabel("Training steps")
             
             # メトリクス名から縦軸ラベルを設定

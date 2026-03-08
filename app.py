@@ -16,6 +16,7 @@ import uuid
 import json
 import zipfile
 from flask import Flask, render_template, request, jsonify, send_file
+import numpy as np
 
 import pandas as pd
 import matplotlib
@@ -154,6 +155,52 @@ def load_csv_data(file_bytes: bytes):
     value = df[value_col].dropna().tolist()
     min_len = min(len(step), len(value))
     return step[:min_len], value[:min_len]
+
+
+def _aggregate_series(series_list):
+    """同一method_idのseriesをグルーピングし、複数ある場合は平均+min/max rangeに集約する。
+    
+    1本だけの場合はそのまま返す（aggregated=False）。
+    複数ある場合は共通step軸に補間してmean/min/maxを算出（aggregated=True）。
+    """
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for s in series_list:
+        groups[s.get("method_id", s.get("label", ""))].append(s)
+
+    result = []
+    for mid, items in groups.items():
+        if len(items) == 1:
+            items[0]["aggregated"] = False
+            result.append(items[0])
+        else:
+            # 全seriesのstep範囲のunionを作り、共通step軸に補間
+            all_steps = set()
+            for s in items:
+                all_steps.update(s["step"])
+            common_step = np.array(sorted(all_steps))
+
+            interpolated = []
+            for s in items:
+                arr_step = np.array(s["step"])
+                arr_val = np.array(s["value"])
+                interp_val = np.interp(common_step, arr_step, arr_val)
+                interpolated.append(interp_val)
+
+            stacked = np.stack(interpolated, axis=0)
+            mean_val = np.mean(stacked, axis=0)
+            min_val = np.min(stacked, axis=0)
+            max_val = np.max(stacked, axis=0)
+
+            agg = dict(items[0])  # copy first item's metadata
+            agg["step"] = common_step.tolist()
+            agg["value"] = mean_val.tolist()
+            agg["value_min"] = min_val.tolist()
+            agg["value_max"] = max_val.tolist()
+            agg["aggregated"] = True
+            agg["n_runs"] = len(items)
+            result.append(agg)
+    return result
 
 
 # ── Routes ────────────────────────────────────────────────
@@ -430,20 +477,31 @@ def _render_graph_to_buf(series_list, params, fmt):
 
     fig, ax = plt.subplots(1, 1, figsize=(fig_w, fig_h))
 
+    # Aggregate series: group by method_id, compute mean + min/max if multiple
+    series_list = _aggregate_series(series_list)
+
     for s in series_list:
         step = s["step"]
         value = s["value"]
+        value_min = s.get("value_min")
+        value_max = s.get("value_max")
         if min_step is not None or max_step is not None:
-            filtered = [(st, v) for st, v in zip(step, value)
-                        if (min_step is None or st >= min_step) and
-                           (max_step is None or st <= max_step)]
-            if filtered:
-                step, value = zip(*filtered)
+            indices = [i for i, st in enumerate(step)
+                       if (min_step is None or st >= min_step) and
+                          (max_step is None or st <= max_step)]
+            if indices:
+                step = [step[i] for i in indices]
+                value = [value[i] for i in indices]
+                if value_min is not None:
+                    value_min = [value_min[i] for i in indices]
+                    value_max = [value_max[i] for i in indices]
             else:
                 continue
         mid = s.get("method_id", "")
         color = method_colors.get(mid, DEFAULT_COLORS[s["color_index"] % len(DEFAULT_COLORS)])
         ax.plot(step, value, linewidth=line_width, label=s["label"], color=color)
+        if s.get("aggregated") and value_min is not None and value_max is not None:
+            ax.fill_between(step, value_min, value_max, alpha=0.2, color=color)
 
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
