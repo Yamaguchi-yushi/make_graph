@@ -49,18 +49,18 @@ function getParams() {
     methodColors[m.id] = m.color || COLORS[m.color_index % COLORS.length];
   });
   return {
-    width:       parseFloat(document.getElementById("param-width").value) || 10,
-    height:      parseFloat(document.getElementById("param-height").value) || 7.5,
-    min_step:    parseStepValue(document.getElementById("param-min-step").value),
-    max_step:    parseStepValue(document.getElementById("param-max-step").value),
-    line_width:  parseFloat(document.getElementById("param-line-width").value) || 1.2,
-    font_label:  parseInt(document.getElementById("param-font-label").value) || 30,
-    font_tick:   parseInt(document.getElementById("param-font-tick").value) || 25,
+    width: parseFloat(document.getElementById("param-width").value) || 10,
+    height: parseFloat(document.getElementById("param-height").value) || 7.5,
+    min_step: parseStepValue(document.getElementById("param-min-step").value),
+    max_step: parseStepValue(document.getElementById("param-max-step").value),
+    line_width: parseFloat(document.getElementById("param-line-width").value) || 1.2,
+    font_label: parseInt(document.getElementById("param-font-label").value) || 30,
+    font_tick: parseInt(document.getElementById("param-font-tick").value) || 25,
     font_legend: parseInt(document.getElementById("param-font-legend").value) || 30,
-    dpi:         parseInt(document.getElementById("param-dpi").value) || 300,
+    dpi: parseInt(document.getElementById("param-dpi").value) || 300,
     show_legend: document.getElementById("param-legend").checked,
-    show_grid:   document.getElementById("param-grid").checked,
-    map_name:    document.getElementById("param-map-name").value,
+    show_grid: document.getElementById("param-grid").checked,
+    map_name: document.getElementById("param-map-name").value,
     agent_count: document.getElementById("param-agent-count").value,
     method_colors: methodColors,
   };
@@ -429,6 +429,62 @@ async function renderGraph() {
   params.y_label = metricData.y_label || "Value";
   params.x_label = "Training steps";
 
+  // Populate stats
+  const statsContainer = document.getElementById("stats-container");
+  const statsContent = document.getElementById("stats-content");
+  if (statsContainer && statsContent) {
+    if (metricData.stats && metricData.stats.length > 0) {
+      statsContainer.style.display = "block";
+      statsContent.innerHTML = "";
+      metricData.stats.forEach(st => {
+        const card = document.createElement("div");
+        card.style.flex = "1 1 200px";
+        card.style.background = "var(--bg-body, #f9fafb)";
+        card.style.border = "1px solid var(--border-color, #e5e7eb)";
+        card.style.borderRadius = "8px";
+        card.style.padding = "10px 14px";
+
+        const dot = document.createElement("span");
+        dot.style.display = "inline-block";
+        dot.style.width = "12px";
+        dot.style.height = "12px";
+        dot.style.borderRadius = "50%";
+        dot.style.background = params.method_colors[st.method_id] || COLORS[st.color_index % COLORS.length];
+        dot.style.marginRight = "8px";
+
+        const title = document.createElement("div");
+        title.style.display = "flex";
+        title.style.alignItems = "center";
+        title.style.fontWeight = "600";
+        title.style.fontSize = "13px";
+        title.style.color = "var(--text-main, #111827)";
+        title.style.marginBottom = "4px";
+        title.appendChild(dot);
+        title.appendChild(document.createTextNode(st.method_name));
+        if (st.n_runs > 1) {
+          const span = document.createElement("span");
+          span.style.fontSize = "11px";
+          span.style.color = "var(--text-muted, #6b7280)";
+          span.style.marginLeft = "6px";
+          span.textContent = `(${st.n_runs} runs)`;
+          title.appendChild(span);
+        }
+
+        const val = document.createElement("div");
+        val.style.fontSize = "16px";
+        val.style.fontFamily = "monospace";
+        val.style.color = "var(--text-main, #374151)";
+        val.textContent = `${st.mean.toFixed(4)} ± ${st.std.toFixed(4)}`;
+
+        card.appendChild(title);
+        card.appendChild(val);
+        statsContent.appendChild(card);
+      });
+    } else {
+      statsContainer.style.display = "none";
+    }
+  }
+
   try {
     const res = await fetch("/api/export", {
       method: "POST",
@@ -454,7 +510,7 @@ async function renderGraph() {
     }
     currentPreviewUrl = URL.createObjectURL(blob);
     imgData.src = currentPreviewUrl;
-    
+
     loading.style.display = "none";
     wrapper.style.display = "flex";
   } catch (e) {

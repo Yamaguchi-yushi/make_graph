@@ -203,6 +203,40 @@ def _aggregate_series(series_list):
     return result
 
 
+def compute_last_10k_stats(series_list):
+    """Calculate mean and std of the last 10,000 steps across runs for each method."""
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for s in series_list:
+        groups[s.get("method_name", s.get("label", ""))].append(s)
+    
+    stats = []
+    for method_name, items in groups.items():
+        all_values = []
+        color_index = items[0].get("color_index", 0)
+        method_id = items[0].get("method_id", "")
+        for s in items:
+            steps = np.array(s["step"])
+            values = np.array(s["value"])
+            if len(steps) == 0: continue
+            max_s = steps[-1]
+            mask = steps >= (max_s - 10000)
+            if np.any(mask):
+                all_values.extend(values[mask].tolist())
+        if all_values:
+            mean_val = np.mean(all_values)
+            std_val = np.std(all_values) if len(all_values) > 1 else 0.0
+            stats.append({
+                "method_name": method_name,
+                "method_id": method_id,
+                "color_index": color_index,
+                "mean": float(mean_val),
+                "std": float(std_val),
+                "n_runs": len(items)
+            })
+    return stats
+
+
 # ── Routes ────────────────────────────────────────────────
 
 @app.route("/")
@@ -362,10 +396,13 @@ def get_plot_data():
 
     result = []
     for metric in ordered_metrics:
+        s_list = metrics_data[metric]
+        stats = compute_last_10k_stats(s_list)
         result.append({
             "metric": metric,
             "y_label": get_y_label(metric),
-            "series": metrics_data[metric],
+            "series": s_list,
+            "stats": stats,
         })
 
     return jsonify({

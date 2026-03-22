@@ -321,6 +321,28 @@ def aggregate_series_for_plot(series: List[SeriesMeta]) -> List[dict]:
             })
     return result
 
+def print_last_10k_stats(series: List[SeriesMeta]):
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for s in series:
+        groups[s.label].append(s)
+    
+    print("  [Last 10,000 Steps Stats]")
+    for label, items in groups.items():
+        all_values = []
+        for s in items:
+            steps = np.array(s.step)
+            values = np.array(s.value)
+            if len(steps) == 0: continue
+            max_s = steps[-1]
+            mask = steps >= (max_s - 10000)
+            if np.any(mask):
+                all_values.extend(values[mask].tolist())
+        if all_values:
+            mean_val = np.mean(all_values)
+            std_val = np.std(all_values) if len(all_values) > 1 else 0.0
+            print(f"    {label}: {mean_val:.4f} ± {std_val:.4f} (runs={len(items)}, pts={len(all_values)})")
+
 def extract_map_name(basename: str) -> str:
     # Extract map name from the basename (exclude date part)
     m = re.search(r"map_([a-zA-Z0-9xX]+)-v\d+", basename)
@@ -468,6 +490,9 @@ def main():
             fig, ax = plt.subplots(nrows, ncols, figsize=figsize)
 
             series = sort_series(by_metric[metric], method_order, suffix_order)
+            print(f"\n  --- Metric: {metric} ---")
+            print_last_10k_stats(series)
+            
             agg_series = aggregate_series_for_plot(series)
             colors = ["#03AF7A", "#005AFF", "red", "#4DC4FF", "#F6AA00", "#FFF100"]  # 色覚多様性対応
             for i, s in enumerate(agg_series):
