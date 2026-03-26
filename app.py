@@ -307,8 +307,20 @@ def upload_csv():
         return jsonify({"error": "手法が見つかりません"}), 404
 
     results = []
+    
+    # 動的に現在のすべてのファイルからマップとエージェント数を収集
+    current_maps = set()
+    current_agents = set()
+    for m in session["methods"]:
+        for f in m["files"]:
+            m_name = extract_map_name(f["filename"])
+            a_count = extract_agent_count(f["filename"])
+            if m_name: current_maps.add(m_name)
+            if a_count: current_agents.add(a_count)
+
     detected_map = ""
     detected_agents = ""
+
     for file in files:
         filename = file.filename
         file_bytes = file.read()
@@ -320,6 +332,24 @@ def upload_csv():
 
         metric = detect_metric(filename)
         file_id = str(uuid.uuid4())[:8]
+
+        # Check map/agents mismatches against currently existing files
+        file_map = extract_map_name(filename)
+        file_agents = extract_agent_count(filename)
+        
+        warning_msg = None
+        if file_map and current_maps and file_map not in current_maps:
+            warning_msg = f"マップ名が異なります (既存: {', '.join(current_maps)}, 今回: {file_map})"
+        elif file_agents and current_agents and file_agents not in current_agents:
+            warning_msg = f"エージェント数が異なります (既存: {', '.join(current_agents)}, 今回: {file_agents})"
+
+        if file_map:
+            current_maps.add(file_map)
+            if not detected_map: detected_map = file_map
+        if file_agents:
+            current_agents.add(file_agents)
+            if not detected_agents: detected_agents = file_agents
+
         target["files"].append({
             "id": file_id,
             "filename": filename,
@@ -332,13 +362,8 @@ def upload_csv():
             "filename": filename,
             "metric": metric,
             "points": len(step),
+            "warning": warning_msg,
         })
-
-        # Auto-detect map name and agent count from first file
-        if not detected_map:
-            detected_map = extract_map_name(filename)
-        if not detected_agents:
-            detected_agents = extract_agent_count(filename)
 
     # Store detected values (only if session doesn't already have them)
     if detected_map and not session.get("map_name"):
@@ -619,4 +644,4 @@ def export_all_graphs():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5050)

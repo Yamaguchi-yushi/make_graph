@@ -1,3 +1,125 @@
+
+const i18n = {
+  ja: {
+    "title": "Graph Visualizer — CSV可視化ツール",
+    "subtitle": "CSVファイルからインタラクティブなグラフを作成",
+    "settings": "⚙️ グラフ設定",
+    "map_name": "マップ名",
+    "agent_count": "エージェント数",
+    "auto_detect": "自動検出",
+    "width": "幅",
+    "height": "高さ",
+    "step_min": "ステップ最小",
+    "step_max": "ステップ最大",
+    "ex_step_min": "例: 0, 1M",
+    "ex_step_max": "例: 8M",
+    "axis_label": "軸ラベル",
+    "axis_tick": "軸の数値",
+    "legend_size": "凡例",
+    "show_legend": "凡例を表示",
+    "show_grid": "グリッド",
+    "methods": "🔬 手法",
+    "add_method": "＋ 手法追加",
+    "empty_methods": "「＋ 手法追加」ボタンで<br>手法を追加してください<br><small>例: 従来手法, 提案手法, 関連研究</small>",
+    "export_all_png": "📦 PNG全保存",
+    "export_all_pdf": "📦 PDF全保存",
+    "export_all_eps": "📦 EPS全保存",
+    "graph_placeholder": "指標を追加してCSVファイルをアップロードすると<br>ここにグラフが表示されます",
+    "generating": "画像を生成中...",
+    "final_perf": "📊 最終パフォーマンス (最後1万ステップの平均 ± 標準偏差)",
+    "toggle_lang": "English",
+    "drop_csv": "<span>📁</span> CSVファイルをドラッグ＆ドロップ",
+    "method_added": "手法を追加しました",
+    "method_deleted": "手法を削除しました",
+    "files_added": "個のファイルを追加しました",
+    "method_prefix": "手法 ",
+    "error_prefix": "エラー: ",
+    "attention_prefix": "⚠️ 注意: ",
+    "no_graph": "グラフが表示されていません",
+    "exporting": "エクスポート中...",
+    "downloaded": "をダウンロードしました",
+    "export_failed": "エクスポート失敗: ",
+    "no_export": "エクスポートするグラフがありません",
+    "all_metrics": "全メトリクス ",
+    "batch_exporting": " 一括エクスポート中...",
+    "graphs_zip_downloaded": "件のグラフをZIPでダウンロードしました",
+    "batch_export_failed": "一括エクスポート失敗: "
+  },
+  en: {
+    "title": "Graph Visualizer",
+    "subtitle": "Create interactive graphs from CSV files",
+    "settings": "⚙️ Graph Settings",
+    "map_name": "Map Name",
+    "agent_count": "Agents",
+    "auto_detect": "Auto-detect",
+    "width": "Width",
+    "height": "Height",
+    "step_min": "Min Step",
+    "step_max": "Max Step",
+    "ex_step_min": "e.g., 0, 1M",
+    "ex_step_max": "e.g., 8M",
+    "axis_label": "Axis Label Size",
+    "axis_tick": "Tick Size",
+    "legend_size": "Legend Size",
+    "show_legend": "Show Legend",
+    "show_grid": "Show Grid",
+    "methods": "🔬 Methods",
+    "add_method": "＋ Add Method",
+    "empty_methods": "Click \"＋ Add Method\" to add a method<br><small>e.g., Baseline, Proposed, Related Work</small>",
+    "export_all_png": "📦 Export All PNG",
+    "export_all_pdf": "📦 Export All PDF",
+    "export_all_eps": "📦 Export All EPS",
+    "graph_placeholder": "Add a method and upload CSV files<br>to display the graph here",
+    "generating": "Generating image...",
+    "final_perf": "📊 Final Performance (Last 10k steps Mean ± STD)",
+    "toggle_lang": "日本語",
+    "drop_csv": "<span>📁</span> Drag & Drop CSV files",
+    "method_added": "Method added",
+    "method_deleted": "Method deleted",
+    "files_added": " files added",
+    "method_prefix": "Method ",
+    "error_prefix": "Error: ",
+    "attention_prefix": "⚠️ Note: ",
+    "no_graph": "No graph displayed",
+    "exporting": "Exporting...",
+    "downloaded": " downloaded",
+    "export_failed": "Export failed: ",
+    "no_export": "No graphs to export",
+    "all_metrics": "All metrics ",
+    "batch_exporting": " batch exporting...",
+    "graphs_zip_downloaded": " graphs downloaded as ZIP",
+    "batch_export_failed": "Batch export failed: "
+  }
+};
+let currentLang = localStorage.getItem("lang") || "ja";
+
+function t(key) {
+  return i18n[currentLang][key] || key;
+}
+
+function toggleLanguage() {
+  currentLang = currentLang === "ja" ? "en" : "ja";
+  localStorage.setItem("lang", currentLang);
+  applyTranslations();
+  renderMethods();
+}
+
+function applyTranslations() {
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (key) {
+      if (el.tagName === "INPUT" && el.hasAttribute("placeholder")) {
+        el.placeholder = t(key);
+      } else {
+        el.innerHTML = t(key);
+      }
+    }
+  });
+  document.title = t("title");
+}
+// Init translations on load
+document.addEventListener("DOMContentLoaded", applyTranslations);
+
 /* ═══════════════════════════════════════════════════════════
    Graph Visualizer — Frontend Logic (Method-based workflow)
    ═══════════════════════════════════════════════════════════ */
@@ -49,8 +171,8 @@ function getParams() {
     methodColors[m.id] = m.color || COLORS[m.color_index % COLORS.length];
   });
   return {
-    width: parseFloat(document.getElementById("param-width").value) || 10,
-    height: parseFloat(document.getElementById("param-height").value) || 7.5,
+    width: parseFloat(document.getElementById("param-width").value) || 20,
+    height: parseFloat(document.getElementById("param-height").value) || 10,
     min_step: parseStepValue(document.getElementById("param-min-step").value),
     max_step: parseStepValue(document.getElementById("param-max-step").value),
     line_width: parseFloat(document.getElementById("param-line-width").value) || 1.2,
@@ -115,7 +237,7 @@ async function apiGetPlotData() {
 
 // ── Add Method ───────────────────────────────────────────
 async function addMethod() {
-  const name = `手法 ${state.methods.length + 1}`;
+  const name = `${t('method_prefix')}${state.methods.length + 1}`;
   const data = await apiAddMethod(name);
   state.methods.push({
     id: data.method_id,
@@ -125,7 +247,7 @@ async function addMethod() {
     files: [],
   });
   renderMethods();
-  toast("手法を追加しました", "success");
+  toast(t("method_added"), "success");
 }
 
 // ── Delete Method ────────────────────────────────────────
@@ -136,14 +258,14 @@ async function deleteMethod(methodId) {
   renderMethods();
   renderTabs();
   renderGraph();
-  toast("手法を削除しました", "info");
+  toast(t("method_deleted"), "info");
 }
 
 // ── Upload Files ─────────────────────────────────────────
 async function uploadFiles(methodId, fileList) {
   const result = await apiUploadFiles(methodId, fileList);
   if (result.error) {
-    toast(`エラー: ${result.error}`, "error");
+    toast(`${t("error_prefix")}${result.error}`, "error");
     return;
   }
 
@@ -153,10 +275,13 @@ async function uploadFiles(methodId, fileList) {
       toast(`${r.filename}: ${r.error}`, "error");
     } else {
       successCount++;
+      if (r.warning) {
+        toast(`${t("attention_prefix")}${r.filename} - ${r.warning}`, "warning");
+      }
     }
   }
   if (successCount > 0) {
-    toast(`${successCount}個のファイルを追加しました`, "success");
+    toast(`${successCount}${t("files_added")}`, "success");
   }
 
   // Auto-fill map name and agent count from detected values
@@ -348,7 +473,7 @@ function renderMethods() {
     // Upload label
     const uploadLabel = document.createElement("label");
     uploadLabel.className = "drop-zone-label";
-    uploadLabel.innerHTML = `<span>📁</span> CSVファイルをドラッグ＆ドロップ`;
+    uploadLabel.innerHTML = `${t("drop_csv")}`;
     const fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = ".csv";
@@ -433,10 +558,61 @@ async function renderGraph() {
   const statsContainer = document.getElementById("stats-container");
   const statsContent = document.getElementById("stats-content");
   if (statsContainer && statsContent) {
-    if (metricData.stats && metricData.stats.length > 0) {
+    let computedStats = [];
+    if (metricData && metricData.series) {
+      const groups = {};
+      for (const s of metricData.series) {
+        if (!groups[s.method_id]) {
+          groups[s.method_id] = { name: s.method_name, color_index: s.color_index, series: [] };
+        }
+        groups[s.method_id].series.push(s);
+      }
+      for (const mid in groups) {
+        const g = groups[mid];
+        let all_values = [];
+        for (const s of g.series) {
+          let step = s.step;
+          let value = s.value;
+          if (params.max_step != null) {
+            const fStep = [], fVal = [];
+            for (let i = 0; i < step.length; i++) {
+              if (step[i] <= params.max_step) {
+                fStep.push(step[i]);
+                fVal.push(value[i]);
+              }
+            }
+            step = fStep;
+            value = fVal;
+          }
+          if (step.length === 0) continue;
+          const max_s = step[step.length - 1];
+          for (let i = 0; i < step.length; i++) {
+            if (step[i] >= max_s - 10000) {
+              all_values.push(value[i]);
+            }
+          }
+        }
+        if (all_values.length > 0) {
+          const sum = all_values.reduce((a, b) => a + b, 0);
+          const mean = sum / all_values.length;
+          const sqSum = all_values.reduce((a, b) => a + (b - mean) ** 2, 0);
+          const std = Math.sqrt(sqSum / all_values.length || 0);
+          computedStats.push({
+            method_id: mid,
+            method_name: g.name,
+            color_index: g.color_index,
+            n_runs: g.series.length,
+            mean: mean,
+            std: std
+          });
+        }
+      }
+    }
+
+    if (computedStats.length > 0) {
       statsContainer.style.display = "block";
       statsContent.innerHTML = "";
-      metricData.stats.forEach(st => {
+      computedStats.forEach(st => {
         const card = document.createElement("div");
         card.style.flex = "1 1 200px";
         card.style.background = "var(--bg-body, #f9fafb)";
@@ -522,7 +698,7 @@ async function renderGraph() {
 // ── Export ────────────────────────────────────────────────
 async function exportCurrent(format) {
   if (!state.activeMetric) {
-    toast("グラフが表示されていません", "error");
+    toast(t("no_graph"), "error");
     return;
   }
 
@@ -533,7 +709,7 @@ async function exportCurrent(format) {
   }
   params.x_label = "Training steps";
 
-  toast(`${format.toUpperCase()} エクスポート中...`, "info");
+  toast(`${format.toUpperCase()} ${t("exporting")}`, "info");
 
   try {
     const res = await fetch("/api/export", {
@@ -549,7 +725,7 @@ async function exportCurrent(format) {
 
     if (!res.ok) {
       const err = await res.json();
-      toast(`エラー: ${err.error}`, "error");
+      toast(`${t("error_prefix")}${err.error}`, "error");
       return;
     }
 
@@ -566,21 +742,21 @@ async function exportCurrent(format) {
     a.download = parts.join("_") + `.${format}`;
     a.click();
     URL.revokeObjectURL(url);
-    toast(`${format.toUpperCase()} をダウンロードしました`, "success");
+    toast(`${format.toUpperCase()} ${t("downloaded")}`, "success");
   } catch (e) {
-    toast(`エクスポート失敗: ${e.message}`, "error");
+    toast(`${t("export_failed")}${e.message}`, "error");
   }
 }
 
 // ── Export All (ZIP) ─────────────────────────────────────
 async function exportAll(format) {
   if (!state.plotData || !state.plotData.metrics || state.plotData.metrics.length === 0) {
-    toast("エクスポートするグラフがありません", "error");
+    toast(t("no_export"), "error");
     return;
   }
 
   const params = getParams();
-  toast(`全メトリクス ${format.toUpperCase()} 一括エクスポート中...`, "info");
+  toast(`${t("all_metrics")}${format.toUpperCase()}${t("batch_exporting")}`, "info");
 
   try {
     const res = await fetch("/api/export-all", {
@@ -595,7 +771,7 @@ async function exportAll(format) {
 
     if (!res.ok) {
       const err = await res.json();
-      toast(`エラー: ${err.error}`, "error");
+      toast(`${t("error_prefix")}${err.error}`, "error");
       return;
     }
 
@@ -603,12 +779,18 @@ async function exportAll(format) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `graphs_${format}.zip`;
+    // Build filename: {map}_{agents}agent_all_metrics_{figsize}_{format}.zip
+    const parts = [];
+    if (params.map_name) parts.push(params.map_name);
+    if (params.agent_count) parts.push(`${params.agent_count}agent`);
+    parts.push("all_metrics");
+    parts.push(`${Math.round(params.width)}-${Math.round(params.height)}`);
+    a.download = parts.join("_") + `_${format}.zip`;
     a.click();
     URL.revokeObjectURL(url);
-    toast(`${state.plotData.metrics.length}件のグラフをZIPでダウンロードしました`, "success");
+    toast(`${state.plotData.metrics.length}${t("graphs_zip_downloaded")}`, "success");
   } catch (e) {
-    toast(`一括エクスポート失敗: ${e.message}`, "error");
+    toast(`${t("batch_export_failed")}${e.message}`, "error");
   }
 }
 

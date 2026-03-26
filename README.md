@@ -31,7 +31,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-ブラウザで http://localhost:5000 を開いてください。
+ブラウザで http://localhost:5050 を開いてください。
 
 ## 使い方
 

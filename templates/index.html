@@ -32,7 +32,10 @@
           </svg>
           <h1>Graph Visualizer</h1>
         </div>
-        <p class="subtitle">CSVファイルからインタラクティブなグラフを作成</p>
+        <p class="subtitle" data-i18n="subtitle">CSVファイルからインタラクティブなグラフを作成</p>
+      </div>
+      <div class="header-right" style="margin-left: auto;">
+        <button id="lang-toggle-btn" class="btn btn-ghost btn-sm" onclick="toggleLanguage()" data-i18n="toggle_lang">English</button>
       </div>
     </header>
 
@@ -43,52 +46,52 @@
         <!-- Global Params -->
         <section class="panel" id="params-panel">
           <div class="panel-header" onclick="togglePanel('params-content')">
-            <h2><span class="icon">⚙️</span> グラフ設定</h2>
+            <h2 data-i18n="settings"><span class="icon">⚙️</span> グラフ設定</h2>
             <span class="chevron" id="params-content-chevron">▼</span>
           </div>
           <div class="panel-content" id="params-content">
             <div class="form-row">
               <div class="form-group">
-                <label for="param-map-name">マップ名</label>
-                <input type="text" id="param-map-name" placeholder="自動検出">
+                <label for="param-map-name" data-i18n="map_name">マップ名</label>
+                <input type="text" id="param-map-name" placeholder="自動検出" data-i18n="auto_detect">
               </div>
               <div class="form-group">
-                <label for="param-agent-count">エージェント数</label>
-                <input type="text" id="param-agent-count" placeholder="自動検出">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="param-width">幅</label>
-                <input type="number" id="param-width" value="10" min="4" max="30" step="0.5">
-              </div>
-              <div class="form-group">
-                <label for="param-height">高さ</label>
-                <input type="number" id="param-height" value="7.5" min="3" max="20" step="0.5">
+                <label for="param-agent-count" data-i18n="agent_count">エージェント数</label>
+                <input type="text" id="param-agent-count" placeholder="自動検出" data-i18n="auto_detect">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="param-min-step">ステップ最小</label>
-                <input type="text" id="param-min-step" placeholder="例: 0, 1M">
+                <label for="param-width" data-i18n="width">幅</label>
+                <input type="number" id="param-width" value="20" min="4" max="30" step="0.5">
               </div>
               <div class="form-group">
-                <label for="param-max-step">ステップ最大</label>
-                <input type="text" id="param-max-step" placeholder="例: 8M">
+                <label for="param-height" data-i18n="height">高さ</label>
+                <input type="number" id="param-height" value="10" min="3" max="20" step="0.5">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="param-min-step" data-i18n="step_min">ステップ最小</label>
+                <input type="text" id="param-min-step" placeholder="例: 0, 1M" data-i18n="ex_step_min">
+              </div>
+              <div class="form-group">
+                <label for="param-max-step" data-i18n="step_max">ステップ最大</label>
+                <input type="text" id="param-max-step" placeholder="例: 8M" data-i18n="ex_step_max">
               </div>
             </div>
             <input type="hidden" id="param-line-width" value="1.2">
             <div class="form-row">
               <div class="form-group">
-                <label for="param-font-label">軸ラベル</label>
+                <label for="param-font-label" data-i18n="axis_label">軸ラベル</label>
                 <input type="number" id="param-font-label" value="30" min="8" max="60" step="1">
               </div>
               <div class="form-group">
-                <label for="param-font-tick">軸の数値</label>
+                <label for="param-font-tick" data-i18n="axis_tick">軸の数値</label>
                 <input type="number" id="param-font-tick" value="25" min="8" max="60" step="1">
               </div>
               <div class="form-group">
-                <label for="param-font-legend">凡例</label>
+                <label for="param-font-legend" data-i18n="legend_size">凡例</label>
                 <input type="number" id="param-font-legend" value="30" min="8" max="60" step="1">
               </div>
             </div>
@@ -97,11 +100,11 @@
               <div class="form-group checkbox-group">
                 <label>
                   <input type="checkbox" id="param-legend" checked>
-                  凡例を表示
+                  <span data-i18n="show_legend">凡例を表示</span>
                 </label>
                 <label>
                   <input type="checkbox" id="param-grid" checked>
-                  グリッド
+                  <span data-i18n="show_grid">グリッド</span>
                 </label>
               </div>
             </div>
@@ -111,14 +114,14 @@
         <!-- Methods & Files -->
         <section class="panel" id="methods-panel">
           <div class="panel-header">
-            <h2><span class="icon">🔬</span> 手法</h2>
+            <h2 data-i18n="methods"><span class="icon">🔬</span> 手法</h2>
             <button class="btn btn-primary btn-sm" id="add-method-btn" onclick="addMethod()">
-              <span>＋ 手法追加</span>
+              <span data-i18n="add_method">＋ 手法追加</span>
             </button>
           </div>
           <div class="metrics-list" id="methods-list">
             <!-- Dynamically populated -->
-            <div class="empty-state" id="empty-state">
+            <div class="empty-state" id="empty-state" data-i18n="empty_methods">
               <p>「＋ 手法追加」ボタンで<br>手法を追加してください<br><small>例: 従来手法, 提案手法, 関連研究</small></p>
             </div>
           </div>
@@ -143,13 +146,13 @@
             </button>
             <span class="export-divider"></span>
             <button class="btn btn-export-all btn-sm" onclick="exportAll('png')" id="export-all-png-btn">
-              <span>📦 PNG全保存</span>
+              <span data-i18n="export_all_png">📦 PNG全保存</span>
             </button>
             <button class="btn btn-export-all btn-sm" onclick="exportAll('pdf')" id="export-all-pdf-btn">
-              <span>📦 PDF全保存</span>
+              <span data-i18n="export_all_pdf">📦 PDF全保存</span>
             </button>
             <button class="btn btn-export-all btn-sm" onclick="exportAll('eps')" id="export-all-eps-btn">
-              <span>📦 EPS全保存</span>
+              <span data-i18n="export_all_eps">📦 EPS全保存</span>
             </button>
           </div>
         </div>
@@ -164,11 +167,11 @@
               <circle cx="40" cy="46" r="3" fill="#6366f1" />
               <circle cx="52" cy="24" r="3" fill="#6366f1" />
             </svg>
-            <p>指標を追加してCSVファイルをアップロードすると<br>ここにグラフが表示されます</p>
+            <p data-i18n="graph_placeholder">指標を追加してCSVファイルをアップロードすると<br>ここにグラフが表示されます</p>
           </div>
           <div id="loading-overlay" class="loading-overlay" style="display:none;">
             <div class="spinner"></div>
-            <p>画像を生成中...</p>
+            <p data-i18n="generating">画像を生成中...</p>
           </div>
           <div id="preview-wrapper"
             style="width:100%;height:100%;display:none; justify-content:flex-start; align-items:center; overflow:auto; flex-direction:column; padding-bottom: 40px;">
@@ -181,8 +184,7 @@
               <div
                 style="background: var(--bg-card, white); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
                 <h3
-                  style="margin: 0 0 12px 0; font-size: 15px; color: var(--text-main, #374151); border-bottom: 1px solid var(--border-color, #e5e7eb); padding-bottom: 8px;">
-                  📊 最終パフォーマンス (最後1万ステップの平均 ± 標準偏差)</h3>
+                  style="margin: 0 0 12px 0; font-size: 15px; color: var(--text-main, #374151); border-bottom: 1px solid var(--border-color, #e5e7eb); padding-bottom: 8px;"><span data-i18n="final_perf">📊 最終パフォーマンス (最後1万ステップの平均 ± 標準偏差)</span></h3>
                 <div id="stats-content" style="display: flex; flex-wrap: wrap; gap: 12px;"></div>
               </div>
             </div>
