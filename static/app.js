@@ -7,6 +7,8 @@ const i18n = {
     "map_name": "マップ名",
     "agent_count": "エージェント数",
     "auto_detect": "自動検出",
+    "memo": "📝 メモ（ファイル名に反映）",
+    "memo_placeholder": "例: 比較実験1",
     "width": "幅",
     "height": "高さ",
     "step_min": "ステップ最小",
@@ -27,7 +29,7 @@ const i18n = {
     "graph_placeholder": "指標を追加してCSVファイルをアップロードすると<br>ここにグラフが表示されます",
     "generating": "画像を生成中...",
     "final_perf": "📊 最終パフォーマンス (最後1万ステップの平均 ± 標準偏差)",
-    "toggle_lang": "English",
+    "toggle_lang": "🌐 Language",
     "drop_csv": "<span>📁</span> CSVファイルをドラッグ＆ドロップ",
     "method_added": "手法を追加しました",
     "method_deleted": "手法を削除しました",
@@ -43,7 +45,14 @@ const i18n = {
     "all_metrics": "全メトリクス ",
     "batch_exporting": " 一括エクスポート中...",
     "graphs_zip_downloaded": "件のグラフをZIPでダウンロードしました",
-    "batch_export_failed": "一括エクスポート失敗: "
+    "batch_export_failed": "一括エクスポート失敗: ",
+    "export_csv_zip": "📁 CSV整理",
+    "csv_exporting": "CSVファイルを整理してエクスポート中...",
+    "csv_zip_downloaded": "CSVファイルをフォルダ整理してダウンロードしました",
+    "csv_export_failed": "CSVエクスポート失敗: ",
+    "clear_all_csvs": "🗑️ 全CSV削除",
+    "confirm_clear_csvs": "全ての手法のCSVファイルを一括削除しますか？",
+    "csvs_cleared": "全CSVファイルを削除しました"
   },
   en: {
     "title": "Graph Visualizer",
@@ -52,6 +61,8 @@ const i18n = {
     "map_name": "Map Name",
     "agent_count": "Agents",
     "auto_detect": "Auto-detect",
+    "memo": "📝 Memo (reflected in filenames)",
+    "memo_placeholder": "e.g., Experiment 1",
     "width": "Width",
     "height": "Height",
     "step_min": "Min Step",
@@ -72,7 +83,7 @@ const i18n = {
     "graph_placeholder": "Add a method and upload CSV files<br>to display the graph here",
     "generating": "Generating image...",
     "final_perf": "📊 Final Performance (Last 10k steps Mean ± STD)",
-    "toggle_lang": "日本語",
+    "toggle_lang": "🌐 Language",
     "drop_csv": "<span>📁</span> Drag & Drop CSV files",
     "method_added": "Method added",
     "method_deleted": "Method deleted",
@@ -88,7 +99,68 @@ const i18n = {
     "all_metrics": "All metrics ",
     "batch_exporting": " batch exporting...",
     "graphs_zip_downloaded": " graphs downloaded as ZIP",
-    "batch_export_failed": "Batch export failed: "
+    "batch_export_failed": "Batch export failed: ",
+    "export_csv_zip": "📁 Organize CSV",
+    "csv_exporting": "Organizing and exporting CSV files...",
+    "csv_zip_downloaded": "CSV files downloaded in organized folders",
+    "csv_export_failed": "CSV export failed: ",
+    "clear_all_csvs": "🗑️ Clear All CSVs",
+    "confirm_clear_csvs": "Are you sure you want to remove all CSV files from all methods?",
+    "csvs_cleared": "All CSV files cleared"
+  },
+  fr: {
+    "title": "Graph Visualizer — Outil de visualisation CSV",
+    "subtitle": "Créer des graphiques interactifs à partir de fichiers CSV",
+    "settings": "⚙️ Paramètres du graphique",
+    "map_name": "Nom de la carte",
+    "agent_count": "Nb d'agents",
+    "auto_detect": "Auto-détection",
+    "memo": "📝 Mémo (inclus dans les noms de fichiers)",
+    "memo_placeholder": "ex. Expérience 1",
+    "width": "Largeur",
+    "height": "Hauteur",
+    "step_min": "Pas min",
+    "step_max": "Pas max",
+    "ex_step_min": "ex. 0, 1M",
+    "ex_step_max": "ex. 8M",
+    "axis_label": "Taille des labels",
+    "axis_tick": "Taille des graduations",
+    "legend_size": "Taille de la légende",
+    "show_legend": "Afficher la légende",
+    "show_grid": "Afficher la grille",
+    "methods": "🔬 Méthodes",
+    "add_method": "＋ Ajouter une méthode",
+    "empty_methods": "Cliquez sur \"Ajouter une méthode\" pour commencer<br><small>ex. Méthode de base, Méthode proposée, Travaux connexes</small>",
+    "export_all_png": "📦 Tout en PNG",
+    "export_all_pdf": "📦 Tout en PDF",
+    "export_all_eps": "📦 Tout en EPS",
+    "graph_placeholder": "Ajoutez une méthode et téléversez des fichiers CSV<br>pour afficher le graphique ici",
+    "generating": "Génération de l'image...",
+    "final_perf": "📊 Performance finale (Moyenne ± Écart-type des 10k derniers pas)",
+    "toggle_lang": "🌐 Language",
+    "drop_csv": "<span>📁</span> Glisser-déposer des fichiers CSV",
+    "method_added": "Méthode ajoutée",
+    "method_deleted": "Méthode supprimée",
+    "files_added": " fichiers ajoutés",
+    "method_prefix": "Méthode ",
+    "error_prefix": "Erreur : ",
+    "attention_prefix": "⚠️ Attention : ",
+    "no_graph": "Aucun graphique affiché",
+    "exporting": "Exportation en cours...",
+    "downloaded": " téléchargé",
+    "export_failed": "Échec de l'exportation : ",
+    "no_export": "Aucun graphique à exporter",
+    "all_metrics": "Toutes les métriques ",
+    "batch_exporting": " exportation groupée en cours...",
+    "graphs_zip_downloaded": " graphiques téléchargés en ZIP",
+    "batch_export_failed": "Échec de l'exportation groupée : ",
+    "export_csv_zip": "📁 Organiser CSV",
+    "csv_exporting": "Organisation et exportation des fichiers CSV...",
+    "csv_zip_downloaded": "Fichiers CSV téléchargés dans des dossiers organisés",
+    "csv_export_failed": "Échec de l'exportation CSV : ",
+    "clear_all_csvs": "🗑️ Effacer tous les CSV",
+    "confirm_clear_csvs": "Voulez-vous vraiment supprimer tous les fichiers CSV de toutes les méthodes ?",
+    "csvs_cleared": "Tous les fichiers CSV ont été supprimés"
   }
 };
 let currentLang = localStorage.getItem("lang") || "ja";
@@ -97,12 +169,28 @@ function t(key) {
   return i18n[currentLang][key] || key;
 }
 
-function toggleLanguage() {
-  currentLang = currentLang === "ja" ? "en" : "ja";
+const LANG_ORDER = ["ja", "en", "fr"];
+
+function toggleLangMenu() {
+  const menu = document.getElementById("lang-menu");
+  menu.classList.toggle("show");
+}
+
+function setLanguage(lang) {
+  currentLang = lang;
   localStorage.setItem("lang", currentLang);
+  document.getElementById("lang-menu").classList.remove("show");
   applyTranslations();
   renderMethods();
 }
+
+// Close dropdown when clicking outside
+document.addEventListener("click", (e) => {
+  const dropdown = document.getElementById("lang-dropdown");
+  if (dropdown && !dropdown.contains(e.target)) {
+    document.getElementById("lang-menu").classList.remove("show");
+  }
+});
 
 function applyTranslations() {
   document.querySelectorAll("[data-i18n]").forEach(el => {
@@ -114,6 +202,10 @@ function applyTranslations() {
         el.innerHTML = t(key);
       }
     }
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    const key = el.getAttribute("data-i18n-placeholder");
+    if (key) el.placeholder = t(key);
   });
   document.title = t("title");
 }
@@ -184,6 +276,7 @@ function getParams() {
     show_grid: document.getElementById("param-grid").checked,
     map_name: document.getElementById("param-map-name").value,
     agent_count: document.getElementById("param-agent-count").value,
+    memo: document.getElementById("param-memo").value,
     method_colors: methodColors,
   };
 }
@@ -230,6 +323,22 @@ async function apiDeleteFile(methodId, fileId) {
   await fetch(`/api/method/${methodId}/file/${fileId}?session_id=${SESSION_ID}`, { method: "DELETE" });
 }
 
+async function apiReorderMethods(order) {
+  await fetch(`/api/method/reorder`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: SESSION_ID, order }),
+  });
+}
+
+async function apiClearAllFiles() {
+  await fetch(`/api/files/clear-all`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: SESSION_ID }),
+  });
+}
+
 async function apiGetPlotData() {
   const res = await fetch(`/api/plot-data?session_id=${SESSION_ID}`);
   return res.json();
@@ -248,6 +357,29 @@ async function addMethod() {
   });
   renderMethods();
   toast(t("method_added"), "success");
+}
+
+// ── Clear All Files ──────────────────────────────────────
+async function clearAllFiles() {
+  if (state.methods.length === 0) return;
+  
+  // どの手法にもファイルがない場合は何もしない
+  let hasFiles = false;
+  if (state.plotData && state.plotData.methods) {
+    hasFiles = state.plotData.methods.some(m => m.file_count > 0);
+  }
+  if (!hasFiles) return;
+
+  if (!confirm(t("confirm_clear_csvs"))) return;
+  
+  await apiClearAllFiles();
+  
+  await refreshPlotData();
+  renderMethods();
+  renderTabs();
+  renderGraph();
+  
+  toast(t("csvs_cleared"), "success");
 }
 
 // ── Delete Method ────────────────────────────────────────
@@ -350,10 +482,82 @@ function renderMethods() {
     return;
   }
 
-  state.methods.forEach((method) => {
+  state.methods.forEach((method, index) => {
     const card = document.createElement("div");
     card.className = "metric-card";
     card.id = `method-card-${method.id}`;
+    
+    // -- Drag and Drop --
+    card.draggable = true;
+    
+    card.addEventListener("dragstart", (e) => {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", method.id);
+      setTimeout(() => card.classList.add("dragging"), 0);
+    });
+
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+      document.querySelectorAll(".metric-card").forEach(c => {
+        c.classList.remove("drag-over-top");
+        c.classList.remove("drag-over-bottom");
+      });
+    });
+
+    card.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      
+      const rect = card.getBoundingClientRect();
+      const midPoint = rect.top + rect.height / 2;
+      
+      if (e.clientY < midPoint) {
+        card.classList.add("drag-over-top");
+        card.classList.remove("drag-over-bottom");
+      } else {
+        card.classList.add("drag-over-bottom");
+        card.classList.remove("drag-over-top");
+      }
+    });
+
+    card.addEventListener("dragleave", () => {
+      card.classList.remove("drag-over-top");
+      card.classList.remove("drag-over-bottom");
+    });
+
+    card.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      card.classList.remove("drag-over-top");
+      card.classList.remove("drag-over-bottom");
+      
+      const draggedId = e.dataTransfer.getData("text/plain");
+      if (draggedId === method.id) return;
+      
+      const rect = card.getBoundingClientRect();
+      const midPoint = rect.top + rect.height / 2;
+      const insertAfter = e.clientY >= midPoint;
+      
+      const draggedIndex = state.methods.findIndex(m => m.id === draggedId);
+      const targetIndex = state.methods.findIndex(m => m.id === method.id);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return;
+      
+      // Reorder array
+      const draggedItem = state.methods[draggedIndex];
+      state.methods.splice(draggedIndex, 1);
+      
+      let newTargetIndex = state.methods.findIndex(m => m.id === method.id);
+      if (insertAfter) newTargetIndex++;
+      
+      state.methods.splice(newTargetIndex, 0, draggedItem);
+      
+      // Sync with backend
+      const newOrder = state.methods.map(m => m.id);
+      await apiReorderMethods(newOrder);
+      
+      renderMethods();
+      renderGraph();
+    });
 
     // Header
     const header = document.createElement("div");
@@ -650,7 +854,7 @@ async function renderGraph() {
         val.style.fontSize = "16px";
         val.style.fontFamily = "monospace";
         val.style.color = "var(--text-main, #374151)";
-        val.textContent = `${st.mean.toFixed(4)} ± ${st.std.toFixed(4)}`;
+        val.textContent = `${st.mean.toFixed(3)} ± ${st.std.toFixed(3)}`;
 
         card.appendChild(title);
         card.appendChild(val);
@@ -737,6 +941,7 @@ async function exportCurrent(format) {
     const parts = [];
     if (params.map_name) parts.push(params.map_name);
     if (params.agent_count) parts.push(`${params.agent_count}agent`);
+    if (params.memo) parts.push(params.memo);
     parts.push(state.activeMetric);
     parts.push(`${Math.round(params.width)}-${Math.round(params.height)}`);
     a.download = parts.join("_") + `.${format}`;
@@ -783,6 +988,7 @@ async function exportAll(format) {
     const parts = [];
     if (params.map_name) parts.push(params.map_name);
     if (params.agent_count) parts.push(`${params.agent_count}agent`);
+    if (params.memo) parts.push(params.memo);
     parts.push("all_metrics");
     parts.push(`${Math.round(params.width)}-${Math.round(params.height)}`);
     a.download = parts.join("_") + `_${format}.zip`;
@@ -794,6 +1000,52 @@ async function exportAll(format) {
   }
 }
 
+// ── Export CSV (organized folders) ────────────────────────
+async function exportCsvZip() {
+  if (!state.plotData || !state.plotData.metrics || state.plotData.metrics.length === 0) {
+    toast(t("no_export"), "error");
+    return;
+  }
+
+  const params = getParams();
+  toast(t("csv_exporting"), "info");
+
+  try {
+    const res = await fetch("/api/export-csv", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: SESSION_ID,
+        map_name: params.map_name,
+        agent_count: params.agent_count,
+        memo: params.memo,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      toast(`${t("error_prefix")}${err.error}`, "error");
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const parts = [];
+    if (params.map_name) parts.push(params.map_name);
+    if (params.agent_count) parts.push(`${params.agent_count}agent`);
+    if (params.memo) parts.push(params.memo);
+    parts.push("csv");
+    a.download = parts.join("_") + ".zip";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(t("csv_zip_downloaded"), "success");
+  } catch (e) {
+    toast(`${t("csv_export_failed")}${e.message}`, "error");
+  }
+}
+
 // ── Auto-update graph on param change ────────────────────
 document.querySelectorAll("#params-content input").forEach(el => {
   const evts = el.type === "checkbox" ? ["change"] : ["change", "input"];
@@ -801,5 +1053,23 @@ document.querySelectorAll("#params-content input").forEach(el => {
 });
 
 // ── Initialize ───────────────────────────────────────────
-renderMethods();
-renderTabs();
+async function init() {
+  const data = await apiGetPlotData();
+  
+  if (data && data.methods) {
+    state.methods = data.methods.map(m => ({
+      id: m.id,
+      name: m.name,
+      color_index: m.color_index,
+      color: m.color || COLORS[m.color_index % COLORS.length],
+      files: [] // files logic will be rehydrated via refreshPlotData if needed
+    }));
+  }
+
+  await refreshPlotData();
+  renderMethods();
+  renderTabs();
+  renderGraph();
+}
+
+init();

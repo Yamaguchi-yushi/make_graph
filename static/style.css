@@ -109,6 +109,60 @@ body {
   font-weight: 400
 }
 
+/* ── Language Dropdown ─────────────────────────────────── */
+.lang-dropdown {
+  position: relative;
+}
+
+.lang-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  z-index: 100;
+  min-width: 160px;
+  overflow: hidden;
+  animation: dropIn .2s var(--ease);
+}
+
+.lang-menu.show {
+  display: flex;
+  flex-direction: column;
+}
+
+.lang-menu button {
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  text-align: left;
+  color: var(--text-secondary);
+  font-size: .85rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+
+.lang-menu button:hover {
+  background: var(--accent);
+  color: white;
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ── Main Layout ────────────────────────────────────────── */
 .main-layout {
   display: flex;
@@ -271,7 +325,7 @@ body {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   overflow: hidden;
-  transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease), opacity .2s;
   animation: slideIn .3s var(--ease);
 }
 
@@ -282,6 +336,16 @@ body {
 .metric-card.active {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.metric-card.dragging {
+  opacity: 0.5;
+}
+.metric-card.drag-over-top {
+  border-top: 2px solid var(--accent);
+}
+.metric-card.drag-over-bottom {
+  border-bottom: 2px solid var(--accent);
 }
 
 @keyframes slideIn {
@@ -302,7 +366,11 @@ body {
   gap: 8px;
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
-  cursor: pointer;
+  cursor: grab;
+}
+
+.metric-header:active {
+  cursor: grabbing;
 }
 
 .metric-color-dot {

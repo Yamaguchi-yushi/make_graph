@@ -35,7 +35,15 @@
         <p class="subtitle" data-i18n="subtitle">CSVファイルからインタラクティブなグラフを作成</p>
       </div>
       <div class="header-right" style="margin-left: auto;">
-        <button id="lang-toggle-btn" class="btn btn-ghost btn-sm" onclick="toggleLanguage()" data-i18n="toggle_lang">English</button>
+        <div class="lang-dropdown" id="lang-dropdown">
+          <button class="btn btn-ghost btn-sm" onclick="toggleLangMenu()" id="lang-toggle-btn"
+            data-i18n="toggle_lang">🌐 Language</button>
+          <div class="lang-menu" id="lang-menu">
+            <button onclick="setLanguage('ja')">🇯🇵 日本語</button>
+            <button onclick="setLanguage('en')">🇬🇧 English</button>
+            <button onclick="setLanguage('fr')">🇫🇷 Français</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -58,6 +66,12 @@
               <div class="form-group">
                 <label for="param-agent-count" data-i18n="agent_count">エージェント数</label>
                 <input type="text" id="param-agent-count" placeholder="自動検出" data-i18n="auto_detect">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="flex: 1;">
+                <label for="param-memo" data-i18n="memo">📝 メモ（ファイル名に反映）</label>
+                <input type="text" id="param-memo" placeholder="例: 比較実験1" data-i18n-placeholder="memo_placeholder">
               </div>
             </div>
             <div class="form-row">
@@ -115,9 +129,14 @@
         <section class="panel" id="methods-panel">
           <div class="panel-header">
             <h2 data-i18n="methods"><span class="icon">🔬</span> 手法</h2>
-            <button class="btn btn-primary btn-sm" id="add-method-btn" onclick="addMethod()">
-              <span data-i18n="add_method">＋ 手法追加</span>
-            </button>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-ghost btn-sm" id="clear-files-btn" onclick="clearAllFiles()" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.3);">
+                <span data-i18n="clear_all_csvs">🗑️ 全CSV削除</span>
+              </button>
+              <button class="btn btn-primary btn-sm" id="add-method-btn" onclick="addMethod()">
+                <span data-i18n="add_method">＋ 手法追加</span>
+              </button>
+            </div>
           </div>
           <div class="metrics-list" id="methods-list">
             <!-- Dynamically populated -->
@@ -154,6 +173,10 @@
             <button class="btn btn-export-all btn-sm" onclick="exportAll('eps')" id="export-all-eps-btn">
               <span data-i18n="export_all_eps">📦 EPS全保存</span>
             </button>
+            <span class="export-divider"></span>
+            <button class="btn btn-export-all btn-sm" onclick="exportCsvZip()" id="export-csv-zip-btn">
+              <span data-i18n="export_csv_zip">📁 CSV整理</span>
+            </button>
           </div>
         </div>
         <div class="graph-container" id="graph-container">
@@ -184,7 +207,9 @@
               <div
                 style="background: var(--bg-card, white); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
                 <h3
-                  style="margin: 0 0 12px 0; font-size: 15px; color: var(--text-main, #374151); border-bottom: 1px solid var(--border-color, #e5e7eb); padding-bottom: 8px;"><span data-i18n="final_perf">📊 最終パフォーマンス (最後1万ステップの平均 ± 標準偏差)</span></h3>
+                  style="margin: 0 0 12px 0; font-size: 15px; color: var(--text-main, #374151); border-bottom: 1px solid var(--border-color, #e5e7eb); padding-bottom: 8px;">
+                  <span data-i18n="final_perf">📊 最終パフォーマンス (最後1万ステップの平均 ± 標準偏差)</span>
+                </h3>
                 <div id="stats-content" style="display: flex; flex-wrap: wrap; gap: 12px;"></div>
               </div>
             </div>

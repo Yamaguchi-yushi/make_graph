@@ -287,6 +287,32 @@ def update_method_name(method_id):
     return jsonify({"error": "not found"}), 404
 
 
+@app.route("/api/method/reorder", methods=["POST"])
+def reorder_methods():
+    """手法の順序を更新"""
+    data = request.get_json(force=True)
+    sid = data.get("session_id", DEFAULT_SESSION)
+    new_order = data.get("order", [])  # list of method_ids
+
+    session = _ensure_session(sid)
+    
+    # 現在のメソッドをIDでマッピング
+    method_map = {m["id"]: m for m in session["methods"]}
+    
+    # 新しい順序でリストを再構築
+    reordered = []
+    for mid in new_order:
+        if mid in method_map:
+            reordered.append(method_map[mid])
+            del method_map[mid]
+            
+    # 指定されなかった残りのメソッドを後ろに追加（安全のため）
+    reordered.extend(method_map.values())
+    
+    session["methods"] = reordered
+    return jsonify({"ok": True})
+
+
 @app.route("/api/upload", methods=["POST"])
 def upload_csv():
     """CSVファイルをアップロード（手法に紐付け）"""
@@ -356,6 +382,7 @@ def upload_csv():
             "metric": metric,
             "step": step,
             "value": value,
+            "raw_bytes": file_bytes,
         })
         results.append({
             "file_id": file_id,
@@ -389,6 +416,18 @@ def delete_file(method_id, file_id):
             break
     return jsonify({"ok": True})
 
+
+@app.route("/api/files/clear-all", methods=["POST"])
+def clear_all_files():
+    """全ての手法の全ファイルを削除"""
+    data = request.get_json(force=True)
+    sid = data.get("session_id", DEFAULT_SESSION)
+    session = _ensure_session(sid)
+    
+    for method in session["methods"]:
+        method["files"] = []
+        
+    return jsonify({"ok": True})
 
 @app.route("/api/plot-data", methods=["GET"])
 def get_plot_data():
@@ -501,12 +540,15 @@ def _build_filename(params, session, metric, fmt):
     fig_h = params.get("height", 7.5)
     map_name = params.get("map_name", session.get("map_name", "unknown"))
     agent_count = params.get("agent_count", session.get("agent_count", ""))
+    memo = params.get("memo", "")
     figsize_str = f"{int(fig_w)}-{int(fig_h)}"
     parts = []
     if map_name:
         parts.append(map_name)
     if agent_count:
         parts.append(f"{agent_count}agent")
+    if memo:
+        parts.append(memo)
     parts.append(metric)
     parts.append(figsize_str)
     return "_".join(parts) + f".{fmt}"
@@ -634,6 +676,60 @@ def export_all_graphs():
         zip_parts.append(f"{agent_count}agent")
     zip_parts.append("all_metrics")
     zip_name = "_".join(zip_parts) + ".zip"
+
+    return send_file(
+        zip_buf,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=zip_name,
+    )
+
+
+@app.route("/api/export-csv", methods=["POST"])
+def export_csv_zip():
+    """アップロード済みCSVを手法ごとにフォルダ分けしたZIPでダウンロード"""
+    data = request.get_json(force=True)
+    sid = data.get("session_id", DEFAULT_SESSION)
+    session = _ensure_session(sid)
+
+    if not session["methods"]:
+        return jsonify({"error": "データがありません"}), 400
+
+    map_name = data.get("map_name", session.get("map_name", ""))
+    agent_count = data.get("agent_count", session.get("agent_count", ""))
+    memo = data.get("memo", "")
+
+    # Build root folder name
+    root_parts = []
+    if map_name:
+        root_parts.append(map_name)
+    if agent_count:
+        root_parts.append(f"{agent_count}agent")
+    if memo:
+        root_parts.append(memo)
+    root_folder = "_".join(root_parts) if root_parts else "csv_data"
+
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for method in session["methods"]:
+            method_name = method["name"]
+            for f in method["files"]:
+                # Sanitize folder/file names for ZIP
+                safe_method = re.sub(r'[<>:"/\\|?*]', '_', method_name)
+                filename = f["filename"]
+                path_in_zip = f"{root_folder}/{safe_method}/{filename}"
+                if "raw_bytes" in f:
+                    zf.writestr(path_in_zip, f["raw_bytes"])
+                else:
+                    # Fallback: reconstruct CSV from step/value
+                    csv_buf = io.StringIO()
+                    csv_buf.write("Step,Value\n")
+                    for s, v in zip(f["step"], f["value"]):
+                        csv_buf.write(f"{s},{v}\n")
+                    zf.writestr(path_in_zip, csv_buf.getvalue())
+
+    zip_buf.seek(0)
+    zip_name = root_folder + "_csv.zip"
 
     return send_file(
         zip_buf,
