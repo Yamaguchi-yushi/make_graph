@@ -52,7 +52,8 @@ const i18n = {
     "csv_export_failed": "CSVエクスポート失敗: ",
     "clear_all_csvs": "🗑️ 全CSV削除",
     "confirm_clear_csvs": "全ての手法のCSVファイルを一括削除しますか？",
-    "csvs_cleared": "全CSVファイルを削除しました"
+    "csvs_cleared": "全CSVファイルを削除しました",
+    "load_folder": "📁 フォルダ読込"
   },
   en: {
     "title": "Graph Visualizer",
@@ -106,7 +107,8 @@ const i18n = {
     "csv_export_failed": "CSV export failed: ",
     "clear_all_csvs": "🗑️ Clear All CSVs",
     "confirm_clear_csvs": "Are you sure you want to remove all CSV files from all methods?",
-    "csvs_cleared": "All CSV files cleared"
+    "csvs_cleared": "All CSV files cleared",
+    "load_folder": "📁 Load Folder"
   },
   fr: {
     "title": "Graph Visualizer — Outil de visualisation CSV",
@@ -160,7 +162,8 @@ const i18n = {
     "csv_export_failed": "Échec de l'exportation CSV : ",
     "clear_all_csvs": "🗑️ Effacer tous les CSV",
     "confirm_clear_csvs": "Voulez-vous vraiment supprimer tous les fichiers CSV de toutes les méthodes ?",
-    "csvs_cleared": "Tous les fichiers CSV ont été supprimés"
+    "csvs_cleared": "Tous les fichiers CSV ont été supprimés",
+    "load_folder": "📁 Charger Dossier"
   }
 };
 let currentLang = localStorage.getItem("lang") || "ja";
@@ -430,6 +433,81 @@ async function uploadFiles(methodId, fileList) {
   renderMethods();
   renderTabs();
   renderGraph();
+}
+
+// ── Folder Upload ─────────────────────────────────────────
+async function handleFolderUpload(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+  
+  const methodGroups = {};
+  let addedCount = 0;
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.CSV')) continue;
+    
+    const parts = file.webkitRelativePath.split('/');
+    if (parts.length < 2) continue;
+    
+    // The immediate parent folder name is the method name
+    const methodName = parts[parts.length - 2];
+    
+    if (!methodGroups[methodName]) {
+      methodGroups[methodName] = [];
+    }
+    methodGroups[methodName].push(file);
+    addedCount++;
+  }
+  
+  if (addedCount === 0) {
+    toast(t("error_prefix") + "CSVファイルが見つかりません", "warning");
+    event.target.value = "";
+    return;
+  }
+  
+  const loading = document.getElementById("loading-overlay");
+  loading.style.display = "flex";
+  
+  try {
+      for (const methodName in methodGroups) {
+        let methodId = null;
+        const existing = state.methods.find(m => m.name === methodName);
+        if (existing) {
+          methodId = existing.id;
+        } else {
+          const data = await apiAddMethod(methodName);
+          methodId = data.method_id;
+          state.methods.push({
+            id: methodId,
+            name: data.name,
+            color_index: data.color_index,
+            color: COLORS[data.color_index % COLORS.length],
+            files: [],
+          });
+        }
+        
+        const result = await apiUploadFiles(methodId, methodGroups[methodName]);
+        if (result.map_name) {
+          const mapEl = document.getElementById("param-map-name");
+          if (!mapEl.value) mapEl.value = result.map_name;
+        }
+        if (result.agent_count) {
+          const agentEl = document.getElementById("param-agent-count");
+          if (!agentEl.value) agentEl.value = result.agent_count;
+        }
+      }
+      toast(`${addedCount}${t("files_added")}`, "success");
+  } catch (err) {
+      toast(`${t("error_prefix")}${err.message}`, "error");
+  } finally {
+      await refreshPlotData();
+      renderMethods();
+      renderTabs();
+      renderGraph();
+      loading.style.display = "none";
+      event.target.value = "";
+  }
 }
 
 // ── Delete File ──────────────────────────────────────────

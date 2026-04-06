@@ -107,11 +107,13 @@ def detect_metric(filename: str) -> str:
 
 
 def extract_map_name(filename: str) -> str:
-    """ファイル名からマップ名を抽出 (元のスクリプトと同じ)"""
-    m = re.search(r"map_([a-zA-Z0-9xX]+)-v\d+", filename)
+    """ファイル名からマップ名を抽出 (改善版: _などを含むマップ名にも対応)"""
+    m = re.search(r"map_(.+?)(?:_\d{4}-\d{2}-\d{2}|-tag-|\.csv)", filename)
     if m:
-        v = re.search(r"-v(\d+)", filename)
-        return m.group(1) + "-v" + v.group(1) if v else m.group(1)
+        return m.group(1)
+    m2 = re.search(r"map_([a-zA-Z0-9xX_-]+)", filename)
+    if m2:
+        return m2.group(1)
     return ""
 
 
@@ -609,6 +611,8 @@ def _render_graph_to_buf(series_list, params, fmt):
 
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
+    if "rate" in y_label.lower():
+        ax.set_ylim(-0.05, 1.05)
     if show_grid:
         ax.grid(True, alpha=0.3)
     if show_legend:

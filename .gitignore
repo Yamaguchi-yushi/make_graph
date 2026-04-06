@@ -1,0 +1,5 @@
+logs/
+8x5_3従来/
+__pycache__/
+*.pyc
+.DS_Store

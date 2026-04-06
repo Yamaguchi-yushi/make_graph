@@ -344,9 +344,14 @@ def print_last_10k_stats(series: List[SeriesMeta]):
             print(f"    {label}: {mean_val:.4f} ± {std_val:.4f} (runs={len(items)}, pts={len(all_values)})")
 
 def extract_map_name(basename: str) -> str:
-    # Extract map name from the basename (exclude date part)
-    m = re.search(r"map_([a-zA-Z0-9xX]+)-v\d+", basename)
-    return m.group(1) + "-v" + re.search(r"-v(\d+)", basename).group(1) if m else "unknown"
+    """ファイル名からマップ名を抽出 (改善版: _などを含むマップ名にも対応)"""
+    m = re.search(r"map_(.+?)(?:_\d{4}-\d{2}-\d{2}|-tag-|\.csv)", basename)
+    if m:
+        return m.group(1)
+    m2 = re.search(r"map_([a-zA-Z0-9xX_-]+)", basename)
+    if m2:
+        return m2.group(1)
+    return "unknown"
 
 def extract_agent_count(basename: str) -> str:
     # Extract agent count from the basename
@@ -522,6 +527,9 @@ def main():
                 ax.set_ylabel("Rate")
             else:
                 ax.set_ylabel("Value")
+            
+            if "rate" in ax.get_ylabel().lower():
+                ax.set_ylim(-0.05, 1.05)
             
             ax.grid(True, alpha=0.3)
             if not args.no_legend:

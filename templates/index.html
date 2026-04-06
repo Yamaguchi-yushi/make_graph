@@ -133,6 +133,10 @@
               <button class="btn btn-ghost btn-sm" id="clear-files-btn" onclick="clearAllFiles()" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.3);">
                 <span data-i18n="clear_all_csvs">🗑️ 全CSV削除</span>
               </button>
+              <label for="folder-upload-input" class="btn btn-primary btn-sm" style="background:var(--success, #10b981); border:none; cursor:pointer;" id="load-folder-btn" title="整理されたCSVフォルダを選択して一括アップロード">
+                <span data-i18n="load_folder">📁 フォルダ読込</span>
+              </label>
+              <input type="file" id="folder-upload-input" webkitdirectory directory multiple style="display:none;" onchange="handleFolderUpload(event)">
               <button class="btn btn-primary btn-sm" id="add-method-btn" onclick="addMethod()">
                 <span data-i18n="add_method">＋ 手法追加</span>
               </button>
