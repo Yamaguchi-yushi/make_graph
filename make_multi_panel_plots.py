@@ -510,15 +510,15 @@ def main():
             # メトリクス名から縦軸ラベルを設定
             metric_lower = metric.lower()
             if "goal" in metric_lower:
-                ax.set_ylabel("Goal rate")
+                ax.set_ylabel("Goal Rate")
             elif "collision" in metric_lower:
-                ax.set_ylabel("Collision rate")
+                ax.set_ylabel("Collision Rate")
             elif "timeup" in metric_lower or "timeout" in metric_lower:
-                ax.set_ylabel("Timeup rate")
+                ax.set_ylabel("Timeup Rate")
             elif "success" in metric_lower:
-                ax.set_ylabel("Success rate")
+                ax.set_ylabel("Success Rate")
             elif "step" in metric_lower or "episode_len" in metric_lower:
-                ax.set_ylabel("Episode length")
+                ax.set_ylabel("Episode Length")
             elif "reward" in metric_lower:
                 ax.set_ylabel("Reward")
             elif "cost" in metric_lower:

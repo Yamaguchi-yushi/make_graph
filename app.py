@@ -66,12 +66,12 @@ DEFAULT_COLORS = ["#03AF7A", "#005AFF", "red", "#4DC4FF", "#F6AA00", "#FFF100"]
 
 # Y-axis label mapping (same as original script)
 METRIC_Y_LABELS = {
-    "goal": "Goal rate",
-    "collision": "Collision rate",
-    "timeup": "Timeup rate",
-    "timeout": "Timeup rate",
-    "success": "Success rate",
-    "episode_len": "Episode length",
+    "goal": "Goal Rate",
+    "collision": "Collision Rate",
+    "timeup": "Timeup Rate",
+    "timeout": "Timeup Rate",
+    "success": "Success Rate",
+    "episode_len": "Episode Length",
     "reward": "Reward",
     "cost": "Cost",
     "rate": "Rate",
