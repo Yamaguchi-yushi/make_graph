@@ -20,6 +20,7 @@ const i18n = {
     "legend_size": "凡例",
     "show_legend": "凡例を表示",
     "show_grid": "グリッド",
+    "show_range": "範囲表示",
     "methods": "🔬 手法",
     "add_method": "＋ 手法追加",
     "empty_methods": "「＋ 手法追加」ボタンで<br>手法を追加してください<br><small>例: 従来手法, 提案手法, 関連研究</small>",
@@ -75,6 +76,7 @@ const i18n = {
     "legend_size": "Legend Size",
     "show_legend": "Show Legend",
     "show_grid": "Show Grid",
+    "show_range": "Show Range",
     "methods": "🔬 Methods",
     "add_method": "＋ Add Method",
     "empty_methods": "Click \"＋ Add Method\" to add a method<br><small>e.g., Baseline, Proposed, Related Work</small>",
@@ -130,6 +132,7 @@ const i18n = {
     "legend_size": "Taille de la légende",
     "show_legend": "Afficher la légende",
     "show_grid": "Afficher la grille",
+    "show_range": "Afficher la plage",
     "methods": "🔬 Méthodes",
     "add_method": "＋ Ajouter une méthode",
     "empty_methods": "Cliquez sur \"Ajouter une méthode\" pour commencer<br><small>ex. Méthode de base, Méthode proposée, Travaux connexes</small>",
@@ -277,6 +280,7 @@ function getParams() {
     dpi: parseInt(document.getElementById("param-dpi").value) || 300,
     show_legend: document.getElementById("param-legend").checked,
     show_grid: document.getElementById("param-grid").checked,
+    show_range: document.getElementById("param-range") ? document.getElementById("param-range").checked : true,
     map_name: document.getElementById("param-map-name").value,
     agent_count: document.getElementById("param-agent-count").value,
     memo: document.getElementById("param-memo").value,
@@ -689,15 +693,37 @@ function renderMethods() {
     delBtn.title = "手法を削除";
     delBtn.onclick = (e) => { e.stopPropagation(); deleteMethod(method.id); };
 
+    // Drop zone
+    const dropZone = document.createElement("div");
+    dropZone.className = "drop-zone";
+    dropZone.style.display = "none";  // Collapsed by default
+    swatchWrap.style.display = "none"; // Collapsed by default
+    
+    const toggleBtn = document.createElement("button");
+    toggleBtn.className = "metric-delete-btn";
+    toggleBtn.innerHTML = "▶";
+    toggleBtn.title = "開閉";
+    toggleBtn.onclick = (e) => {
+      e.stopPropagation();
+      const isCollapsed = dropZone.style.display === "none";
+      if (isCollapsed) {
+        dropZone.style.display = "flex";
+        swatchWrap.style.display = "flex";
+        toggleBtn.innerHTML = "▼";
+      } else {
+        dropZone.style.display = "none";
+        swatchWrap.style.display = "none";
+        toggleBtn.innerHTML = "▶";
+      }
+    };
+
     header.appendChild(dot);
     header.appendChild(nameInput);
+    header.appendChild(toggleBtn);
     header.appendChild(delBtn);
     card.appendChild(header);
     card.appendChild(swatchWrap);
 
-    // Drop zone
-    const dropZone = document.createElement("div");
-    dropZone.className = "drop-zone";
     dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); };
     dropZone.ondragleave = () => dropZone.classList.remove("drag-over");
     dropZone.ondrop = (e) => {

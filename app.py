@@ -572,6 +572,7 @@ def _render_graph_to_buf(series_list, params, fmt):
     font_legend = params.get("font_legend", 30)
     method_colors = params.get("method_colors", {})
     show_grid = params.get("show_grid", True)
+    show_range = params.get("show_range", True)
 
     rcParams["font.size"] = 18
     rcParams["axes.titlesize"] = font_label
@@ -606,7 +607,7 @@ def _render_graph_to_buf(series_list, params, fmt):
         mid = s.get("method_id", "")
         color = method_colors.get(mid, DEFAULT_COLORS[s["color_index"] % len(DEFAULT_COLORS)])
         ax.plot(step, value, linewidth=line_width, label=s["label"], color=color)
-        if s.get("aggregated") and value_min is not None and value_max is not None:
+        if show_range and s.get("aggregated") and value_min is not None and value_max is not None:
             ax.fill_between(step, value_min, value_max, alpha=0.2, color=color)
 
     ax.set_xlabel(x_label)
@@ -673,11 +674,14 @@ def export_all_graphs():
     zip_buf.seek(0)
     map_name = params.get("map_name", session.get("map_name", "graphs"))
     agent_count = params.get("agent_count", session.get("agent_count", ""))
+    memo = params.get("memo", "")
     zip_parts = []
     if map_name:
         zip_parts.append(map_name)
     if agent_count:
         zip_parts.append(f"{agent_count}agent")
+    if memo:
+        zip_parts.append(memo)
     zip_parts.append("all_metrics")
     zip_name = "_".join(zip_parts) + ".zip"
 
@@ -721,7 +725,17 @@ def export_csv_zip():
                 # Sanitize folder/file names for ZIP
                 safe_method = re.sub(r'[<>:"/\\|?*]', '_', method_name)
                 filename = f["filename"]
-                path_in_zip = f"{root_folder}/{safe_method}/{filename}"
+                
+                # Extract run name from filename to group by execution
+                name_noext = os.path.splitext(filename)[0]
+                pos = name_noext.find("-tag-")
+                if pos != -1:
+                    run_name = name_noext[:pos]
+                else:
+                    run_name = name_noext
+                safe_run_name = re.sub(r'[<>:"/\\|?*]', '_', run_name)
+                
+                path_in_zip = f"{root_folder}/{safe_method}/{safe_run_name}/{filename}"
                 if "raw_bytes" in f:
                     zf.writestr(path_in_zip, f["raw_bytes"])
                 else:
