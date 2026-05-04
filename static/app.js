@@ -19,6 +19,8 @@ const i18n = {
     "axis_tick": "軸の数値",
     "legend_size": "凡例",
     "legend_position": "凡例の位置",
+    "legend_reset": "自動に戻す",
+    "legend_auto": "自動",
     "show_legend": "凡例を表示",
     "show_grid": "グリッド",
     "show_range": "範囲表示",
@@ -76,6 +78,8 @@ const i18n = {
     "axis_tick": "Tick Size",
     "legend_size": "Legend Size",
     "legend_position": "Legend Position",
+    "legend_reset": "Reset to Auto",
+    "legend_auto": "Auto",
     "show_legend": "Show Legend",
     "show_grid": "Show Grid",
     "show_range": "Show Range",
@@ -133,6 +137,8 @@ const i18n = {
     "axis_tick": "Taille des graduations",
     "legend_size": "Taille de la légende",
     "legend_position": "Position de la légende",
+    "legend_reset": "Réinitialiser",
+    "legend_auto": "Auto",
     "show_legend": "Afficher la légende",
     "show_grid": "Afficher la grille",
     "show_range": "Afficher la plage",
@@ -241,6 +247,7 @@ let state = {
   plotData: null,       // {metrics: [{metric, y_label, series:[...]}], methods:[...]}
   activeMetric: null,   // currently selected metric tab
   expandedMethods: new Set(),  // track which method cards are expanded
+  legendSettings: {},   // metric -> {auto: true, x: 1.0, y: 1.0}
 };
 
 // ── Helpers ──────────────────────────────────────────────
@@ -283,7 +290,6 @@ function getParams() {
     font_legend: parseInt(document.getElementById("param-font-legend").value) || 43,
     dpi: parseInt(document.getElementById("param-dpi").value) || 300,
     show_legend: document.getElementById("param-legend").checked,
-    legend_position: document.getElementById("param-legend-position").value || "best",
     show_grid: document.getElementById("param-grid").checked,
     show_range: document.getElementById("param-range") ? document.getElementById("param-range").checked : true,
     map_name: document.getElementById("param-map-name").value,
@@ -793,6 +799,13 @@ async function renderGraph() {
   params.y_label = metricData.y_label || "Value";
   params.x_label = "Training steps";
 
+  // Per-metric legend position
+  const ls = getLegendSetting(state.activeMetric);
+  params.legend_auto = ls.auto;
+  params.legend_x = ls.x;
+  params.legend_y = ls.y;
+  updateLegendControls();
+
   // Populate stats
   const statsContainer = document.getElementById("stats-container");
   const statsContent = document.getElementById("stats-content");
@@ -958,6 +971,12 @@ async function exportCurrent(format) {
   }
   params.x_label = "Training steps";
 
+  // Per-metric legend position
+  const ls = getLegendSetting(state.activeMetric);
+  params.legend_auto = ls.auto;
+  params.legend_x = ls.x;
+  params.legend_y = ls.y;
+
   toast(`${format.toUpperCase()} ${t("exporting")}`, "info");
 
   try {
@@ -1006,6 +1025,11 @@ async function exportAll(format) {
   }
 
   const params = getParams();
+  // Include all per-metric legend settings for batch export
+  params.legend_settings = {};
+  for (const metric in state.legendSettings) {
+    params.legend_settings[metric] = state.legendSettings[metric];
+  }
   toast(`${t("all_metrics")}${format.toUpperCase()}${t("batch_exporting")}`, "info");
 
   try {
@@ -1184,9 +1208,63 @@ document.querySelectorAll("#params-content input").forEach(el => {
   const evts = el.type === "checkbox" ? ["change"] : ["change", "input"];
   evts.forEach(evt => el.addEventListener(evt, () => renderGraph()));
 });
-document.querySelectorAll("#params-content select").forEach(el => {
-  el.addEventListener("change", () => renderGraph());
-});
+
+// ── Legend Position (per-metric) ─────────────────────────
+function getLegendSetting(metric) {
+  if (!state.legendSettings[metric]) {
+    state.legendSettings[metric] = { auto: true, x: 1.0, y: 1.0 };
+  }
+  return state.legendSettings[metric];
+}
+
+function adjustLegend(direction) {
+  if (!state.activeMetric) return;
+  const setting = getLegendSetting(state.activeMetric);
+  const step = 0.05;
+  if (setting.auto) {
+    setting.auto = false;
+    setting.x = 1.0;
+    setting.y = 1.0;
+  }
+  switch (direction) {
+    case 'up':    setting.y += step; break;
+    case 'down':  setting.y -= step; break;
+    case 'left':  setting.x -= step; break;
+    case 'right': setting.x += step; break;
+  }
+  // Round to avoid floating point drift
+  setting.x = Math.round(setting.x * 100) / 100;
+  setting.y = Math.round(setting.y * 100) / 100;
+  updateLegendControls();
+  renderGraph();
+}
+
+function resetLegend() {
+  if (!state.activeMetric) return;
+  state.legendSettings[state.activeMetric] = { auto: true, x: 1.0, y: 1.0 };
+  updateLegendControls();
+  renderGraph();
+}
+
+function updateLegendControls() {
+  const controls = document.getElementById('legend-controls');
+  const display = document.getElementById('legend-pos-display');
+  if (!controls) return;
+
+  const showLegend = document.getElementById('param-legend').checked;
+  if (!state.activeMetric || !showLegend ||
+      !state.plotData || !state.plotData.metrics || state.plotData.metrics.length === 0) {
+    controls.style.display = 'none';
+    return;
+  }
+  controls.style.display = 'flex';
+  const setting = getLegendSetting(state.activeMetric);
+  if (setting.auto) {
+    display.textContent = t('legend_auto');
+  } else {
+    display.textContent = `(${setting.x.toFixed(2)}, ${setting.y.toFixed(2)})`;
+  }
+}
 
 // ── Initialize ───────────────────────────────────────────
 async function init() {

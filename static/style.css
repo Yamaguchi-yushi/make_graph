@@ -613,6 +613,82 @@ body {
   gap: 12px;
 }
 
+/* ── Legend Position Controls ──────────────────────────── */
+.legend-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 20px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.legend-controls-label {
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.legend-arrow-group {
+  display: flex;
+  gap: 3px;
+}
+
+.btn-legend-arrow {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: .7rem;
+  cursor: pointer;
+  transition: all .15s var(--ease);
+  padding: 0;
+}
+
+.btn-legend-arrow:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.btn-legend-arrow:active {
+  transform: scale(0.92);
+}
+
+.legend-pos-display {
+  font-size: .78rem;
+  font-family: 'Inter', monospace;
+  color: var(--text-muted);
+  min-width: 80px;
+  text-align: center;
+}
+
+.btn-legend-reset {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: .72rem;
+  font-family: inherit;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all .15s var(--ease);
+  white-space: nowrap;
+}
+
+.btn-legend-reset:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, .08);
+}
+
 .tab-bar {
   display: flex;
   gap: 4px;

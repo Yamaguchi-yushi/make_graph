@@ -126,24 +126,7 @@
                 </label>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group" style="flex: 1;">
-                <label for="param-legend-position" data-i18n="legend_position">凡例の位置</label>
-                <select id="param-legend-position">
-                  <option value="best" selected>自動 (best)</option>
-                  <option value="upper right">右上 (upper right)</option>
-                  <option value="upper left">左上 (upper left)</option>
-                  <option value="lower left">左下 (lower left)</option>
-                  <option value="lower right">右下 (lower right)</option>
-                  <option value="right">右 (right)</option>
-                  <option value="center left">中央左 (center left)</option>
-                  <option value="center right">中央右 (center right)</option>
-                  <option value="lower center">下中央 (lower center)</option>
-                  <option value="upper center">上中央 (upper center)</option>
-                  <option value="center">中央 (center)</option>
-                </select>
-              </div>
-            </div>
+
           </div>
         </section>
 
@@ -204,6 +187,17 @@
               <span data-i18n="export_csv_zip">📁 CSV整理</span>
             </button>
           </div>
+        </div>
+        <div class="legend-controls" id="legend-controls" style="display:none;">
+          <span class="legend-controls-label" data-i18n="legend_position">凡例の位置</span>
+          <div class="legend-arrow-group">
+            <button class="btn-legend-arrow" onclick="adjustLegend('up')" title="上">▲</button>
+            <button class="btn-legend-arrow" onclick="adjustLegend('down')" title="下">▼</button>
+            <button class="btn-legend-arrow" onclick="adjustLegend('left')" title="左">◀</button>
+            <button class="btn-legend-arrow" onclick="adjustLegend('right')" title="右">▶</button>
+          </div>
+          <span class="legend-pos-display" id="legend-pos-display">自動</span>
+          <button class="btn-legend-reset" onclick="resetLegend()" data-i18n="legend_reset">自動に戻す</button>
         </div>
         <div class="graph-container" id="graph-container">
           <div class="graph-placeholder" id="graph-placeholder">

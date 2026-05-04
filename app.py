@@ -573,7 +573,9 @@ def _render_graph_to_buf(series_list, params, fmt):
     method_colors = params.get("method_colors", {})
     show_grid = params.get("show_grid", True)
     show_range = params.get("show_range", True)
-    legend_position = params.get("legend_position", "best")
+    legend_auto = params.get("legend_auto", True)
+    legend_x = params.get("legend_x", 1.0)
+    legend_y = params.get("legend_y", 1.0)
 
     rcParams["font.size"] = 18
     rcParams["axes.titlesize"] = font_label
@@ -618,7 +620,10 @@ def _render_graph_to_buf(series_list, params, fmt):
     if show_grid:
         ax.grid(True, alpha=0.3)
     if show_legend:
-        ax.legend(loc=legend_position, framealpha=0.9)
+        if legend_auto:
+            ax.legend(loc="best", framealpha=0.9)
+        else:
+            ax.legend(bbox_to_anchor=(legend_x, legend_y), loc="upper right", framealpha=0.9)
     plt.tight_layout()
 
     buf = io.BytesIO()
@@ -662,12 +667,19 @@ def export_all_graphs():
         return jsonify({"error": "メトリクスが見つかりません"}), 400
 
     # Build ZIP
+    legend_settings = params.get("legend_settings", {})
     zip_buf = io.BytesIO()
     with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for metric, mdata in all_metrics.items():
             p = dict(params)
             p["y_label"] = mdata["y_label"]
             p["x_label"] = "Training steps"
+            # Apply per-metric legend settings
+            if metric in legend_settings:
+                ls = legend_settings[metric]
+                p["legend_auto"] = ls.get("auto", True)
+                p["legend_x"] = ls.get("x", 1.0)
+                p["legend_y"] = ls.get("y", 1.0)
             graph_buf = _render_graph_to_buf(mdata["series"], p, fmt)
             filename = _build_filename(params, session, metric, fmt)
             zf.writestr(filename, graph_buf.getvalue())
