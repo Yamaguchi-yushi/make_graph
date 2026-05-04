@@ -52,10 +52,10 @@ rcParams["ps.fonttype"] = 3
 DEFAULT_RCPARAMS = {
     "font.size": 18,
     "axes.titlesize": 24,
-    "axes.labelsize": 30,
-    "xtick.labelsize": 25,
-    "ytick.labelsize": 25,
-    "legend.fontsize": 30,
+    "axes.labelsize": 35,
+    "xtick.labelsize": 35,
+    "ytick.labelsize": 35,
+    "legend.fontsize": 43,
     "legend.title_fontsize": 20,
 }
 for k, v in DEFAULT_RCPARAMS.items():
@@ -394,10 +394,10 @@ def upload_csv():
             "warning": warning_msg,
         })
 
-    # Store detected values (only if session doesn't already have them)
-    if detected_map and not session.get("map_name"):
+    # Store detected values (always update with latest detection)
+    if detected_map:
         session["map_name"] = detected_map
-    if detected_agents and not session.get("agent_count"):
+    if detected_agents:
         session["agent_count"] = detected_agents
 
     return jsonify({
@@ -567,12 +567,13 @@ def _render_graph_to_buf(series_list, params, fmt):
     max_step = params.get("max_step")
     show_legend = params.get("show_legend", True)
     line_width = params.get("line_width", 1.2)
-    font_label = params.get("font_label", 30)
-    font_tick = params.get("font_tick", 25)
-    font_legend = params.get("font_legend", 30)
+    font_label = params.get("font_label", 35)
+    font_tick = params.get("font_tick", 35)
+    font_legend = params.get("font_legend", 43)
     method_colors = params.get("method_colors", {})
     show_grid = params.get("show_grid", True)
     show_range = params.get("show_range", True)
+    legend_position = params.get("legend_position", "best")
 
     rcParams["font.size"] = 18
     rcParams["axes.titlesize"] = font_label
@@ -617,7 +618,7 @@ def _render_graph_to_buf(series_list, params, fmt):
     if show_grid:
         ax.grid(True, alpha=0.3)
     if show_legend:
-        ax.legend(loc="best", framealpha=0.9)
+        ax.legend(loc=legend_position, framealpha=0.9)
     plt.tight_layout()
 
     buf = io.BytesIO()
@@ -755,6 +756,137 @@ def export_csv_zip():
         as_attachment=True,
         download_name=zip_name,
     )
+
+
+@app.route("/api/import-csv-zip", methods=["POST"])
+def import_csv_zip():
+    """CSV整理ZIPを読み込んで手法・ファイルを復元する"""
+    sid = request.form.get("session_id", DEFAULT_SESSION)
+    session = _ensure_session(sid)
+
+    zip_file = request.files.get("file")
+    if not zip_file:
+        return jsonify({"error": "ZIPファイルが指定されていません"}), 400
+
+    try:
+        zip_bytes = zip_file.read()
+        zf = zipfile.ZipFile(io.BytesIO(zip_bytes))
+    except Exception as e:
+        return jsonify({"error": f"ZIPファイルの読み込みに失敗: {str(e)}"}), 400
+
+    # Parse ZIP structure: {root_folder}/{method_name}/{run_name}/{filename.csv}
+    # or {root_folder}/{method_name}/{filename.csv}
+    method_files = {}  # method_name -> [{filename, file_bytes}]
+
+    for name in zf.namelist():
+        # Skip directories and non-CSV files
+        if name.endswith('/') or not name.lower().endswith('.csv'):
+            continue
+
+        parts = name.split('/')
+        # Determine method name from path structure
+        # Expected: root/method/run/file.csv (4 parts) or root/method/file.csv (3 parts)
+        if len(parts) >= 4:
+            method_name = parts[1]
+        elif len(parts) == 3:
+            method_name = parts[1]
+        elif len(parts) == 2:
+            method_name = parts[0]
+        else:
+            method_name = "unknown"
+
+        csv_filename = parts[-1]
+        file_bytes = zf.read(name)
+
+        if method_name not in method_files:
+            method_files[method_name] = []
+        method_files[method_name].append({
+            "filename": csv_filename,
+            "file_bytes": file_bytes,
+        })
+
+    zf.close()
+
+    if not method_files:
+        return jsonify({"error": "ZIPにCSVファイルが見つかりません"}), 400
+
+    # Create methods and load files
+    results = []
+    created_methods = []
+    detected_map = ""
+    detected_agents = ""
+
+    for method_name, files in method_files.items():
+        # Check if method already exists
+        existing = None
+        for m in session["methods"]:
+            if m["name"] == method_name:
+                existing = m
+                break
+
+        if existing:
+            target = existing
+        else:
+            mid = str(uuid.uuid4())[:8]
+            color_index = len(session["methods"])
+            target = {
+                "id": mid,
+                "name": method_name,
+                "color_index": color_index,
+                "files": [],
+            }
+            session["methods"].append(target)
+            created_methods.append({
+                "method_id": mid,
+                "name": method_name,
+                "color_index": color_index,
+            })
+
+        for file_info in files:
+            filename = file_info["filename"]
+            file_bytes = file_info["file_bytes"]
+            try:
+                step, value = load_csv_data(file_bytes)
+            except Exception as e:
+                results.append({"filename": filename, "error": str(e)})
+                continue
+
+            metric = detect_metric(filename)
+            file_id = str(uuid.uuid4())[:8]
+
+            file_map = extract_map_name(filename)
+            file_agents = extract_agent_count(filename)
+            if file_map and not detected_map:
+                detected_map = file_map
+            if file_agents and not detected_agents:
+                detected_agents = file_agents
+
+            target["files"].append({
+                "id": file_id,
+                "filename": filename,
+                "metric": metric,
+                "step": step,
+                "value": value,
+                "raw_bytes": file_bytes,
+            })
+            results.append({
+                "file_id": file_id,
+                "filename": filename,
+                "metric": metric,
+                "points": len(step),
+            })
+
+    if detected_map:
+        session["map_name"] = detected_map
+    if detected_agents:
+        session["agent_count"] = detected_agents
+
+    return jsonify({
+        "results": results,
+        "created_methods": created_methods,
+        "map_name": session.get("map_name", ""),
+        "agent_count": session.get("agent_count", ""),
+    })
 
 
 if __name__ == "__main__":

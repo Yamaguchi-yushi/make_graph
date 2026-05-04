@@ -18,6 +18,7 @@ const i18n = {
     "axis_label": "軸ラベル",
     "axis_tick": "軸の数値",
     "legend_size": "凡例",
+    "legend_position": "凡例の位置",
     "show_legend": "凡例を表示",
     "show_grid": "グリッド",
     "show_range": "範囲表示",
@@ -74,6 +75,7 @@ const i18n = {
     "axis_label": "Axis Label Size",
     "axis_tick": "Tick Size",
     "legend_size": "Legend Size",
+    "legend_position": "Legend Position",
     "show_legend": "Show Legend",
     "show_grid": "Show Grid",
     "show_range": "Show Range",
@@ -130,6 +132,7 @@ const i18n = {
     "axis_label": "Taille des labels",
     "axis_tick": "Taille des graduations",
     "legend_size": "Taille de la légende",
+    "legend_position": "Position de la légende",
     "show_legend": "Afficher la légende",
     "show_grid": "Afficher la grille",
     "show_range": "Afficher la plage",
@@ -237,6 +240,7 @@ let state = {
   methods: [],          // [{id, name, color_index, files:[{id, filename, metric, step, value}]}]
   plotData: null,       // {metrics: [{metric, y_label, series:[...]}], methods:[...]}
   activeMetric: null,   // currently selected metric tab
+  expandedMethods: new Set(),  // track which method cards are expanded
 };
 
 // ── Helpers ──────────────────────────────────────────────
@@ -274,11 +278,12 @@ function getParams() {
     min_step: parseStepValue(document.getElementById("param-min-step").value),
     max_step: parseStepValue(document.getElementById("param-max-step").value),
     line_width: parseFloat(document.getElementById("param-line-width").value) || 1.2,
-    font_label: parseInt(document.getElementById("param-font-label").value) || 30,
-    font_tick: parseInt(document.getElementById("param-font-tick").value) || 25,
-    font_legend: parseInt(document.getElementById("param-font-legend").value) || 30,
+    font_label: parseInt(document.getElementById("param-font-label").value) || 35,
+    font_tick: parseInt(document.getElementById("param-font-tick").value) || 35,
+    font_legend: parseInt(document.getElementById("param-font-legend").value) || 43,
     dpi: parseInt(document.getElementById("param-dpi").value) || 300,
     show_legend: document.getElementById("param-legend").checked,
+    legend_position: document.getElementById("param-legend-position").value || "best",
     show_grid: document.getElementById("param-grid").checked,
     show_range: document.getElementById("param-range") ? document.getElementById("param-range").checked : true,
     map_name: document.getElementById("param-map-name").value,
@@ -423,95 +428,18 @@ async function uploadFiles(methodId, fileList) {
     toast(`${successCount}${t("files_added")}`, "success");
   }
 
-  // Auto-fill map name and agent count from detected values
+  // Auto-fill map name and agent count from detected values (always update)
   if (result.map_name) {
-    const mapEl = document.getElementById("param-map-name");
-    if (!mapEl.value) mapEl.value = result.map_name;
+    document.getElementById("param-map-name").value = result.map_name;
   }
   if (result.agent_count) {
-    const agentEl = document.getElementById("param-agent-count");
-    if (!agentEl.value) agentEl.value = result.agent_count;
+    document.getElementById("param-agent-count").value = result.agent_count;
   }
 
   await refreshPlotData();
   renderMethods();
   renderTabs();
   renderGraph();
-}
-
-// ── Folder Upload ─────────────────────────────────────────
-async function handleFolderUpload(event) {
-  const files = event.target.files;
-  if (!files || files.length === 0) return;
-  
-  const methodGroups = {};
-  let addedCount = 0;
-  
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    if (!file.name.endsWith('.csv') && !file.name.endsWith('.CSV')) continue;
-    
-    const parts = file.webkitRelativePath.split('/');
-    if (parts.length < 2) continue;
-    
-    // The immediate parent folder name is the method name
-    const methodName = parts[parts.length - 2];
-    
-    if (!methodGroups[methodName]) {
-      methodGroups[methodName] = [];
-    }
-    methodGroups[methodName].push(file);
-    addedCount++;
-  }
-  
-  if (addedCount === 0) {
-    toast(t("error_prefix") + "CSVファイルが見つかりません", "warning");
-    event.target.value = "";
-    return;
-  }
-  
-  const loading = document.getElementById("loading-overlay");
-  loading.style.display = "flex";
-  
-  try {
-      for (const methodName in methodGroups) {
-        let methodId = null;
-        const existing = state.methods.find(m => m.name === methodName);
-        if (existing) {
-          methodId = existing.id;
-        } else {
-          const data = await apiAddMethod(methodName);
-          methodId = data.method_id;
-          state.methods.push({
-            id: methodId,
-            name: data.name,
-            color_index: data.color_index,
-            color: COLORS[data.color_index % COLORS.length],
-            files: [],
-          });
-        }
-        
-        const result = await apiUploadFiles(methodId, methodGroups[methodName]);
-        if (result.map_name) {
-          const mapEl = document.getElementById("param-map-name");
-          if (!mapEl.value) mapEl.value = result.map_name;
-        }
-        if (result.agent_count) {
-          const agentEl = document.getElementById("param-agent-count");
-          if (!agentEl.value) agentEl.value = result.agent_count;
-        }
-      }
-      toast(`${addedCount}${t("files_added")}`, "success");
-  } catch (err) {
-      toast(`${t("error_prefix")}${err.message}`, "error");
-  } finally {
-      await refreshPlotData();
-      renderMethods();
-      renderTabs();
-      renderGraph();
-      loading.style.display = "none";
-      event.target.value = "";
-  }
 }
 
 // ── Delete File ──────────────────────────────────────────
@@ -696,12 +624,13 @@ function renderMethods() {
     // Drop zone
     const dropZone = document.createElement("div");
     dropZone.className = "drop-zone";
-    dropZone.style.display = "none";  // Collapsed by default
-    swatchWrap.style.display = "none"; // Collapsed by default
+    const isExpanded = state.expandedMethods.has(method.id);
+    dropZone.style.display = isExpanded ? "flex" : "none";
+    swatchWrap.style.display = isExpanded ? "flex" : "none";
     
     const toggleBtn = document.createElement("button");
     toggleBtn.className = "metric-delete-btn";
-    toggleBtn.innerHTML = "▶";
+    toggleBtn.innerHTML = isExpanded ? "▼" : "▶";
     toggleBtn.title = "開閉";
     toggleBtn.onclick = (e) => {
       e.stopPropagation();
@@ -710,10 +639,12 @@ function renderMethods() {
         dropZone.style.display = "flex";
         swatchWrap.style.display = "flex";
         toggleBtn.innerHTML = "▼";
+        state.expandedMethods.add(method.id);
       } else {
         dropZone.style.display = "none";
         swatchWrap.style.display = "none";
         toggleBtn.innerHTML = "▶";
+        state.expandedMethods.delete(method.id);
       }
     };
 
@@ -922,11 +853,11 @@ async function renderGraph() {
       statsContent.innerHTML = "";
       computedStats.forEach(st => {
         const card = document.createElement("div");
-        card.style.flex = "1 1 200px";
-        card.style.background = "var(--bg-body, #f9fafb)";
-        card.style.border = "1px solid var(--border-color, #e5e7eb)";
+        card.style.background = "var(--bg-base, #0c0e14)";
+        card.style.border = "1px solid var(--border, rgba(148,163,184,.12))";
         card.style.borderRadius = "8px";
         card.style.padding = "10px 14px";
+        card.style.minWidth = "0";
 
         const dot = document.createElement("span");
         dot.style.display = "inline-block";
@@ -935,29 +866,39 @@ async function renderGraph() {
         dot.style.borderRadius = "50%";
         dot.style.background = params.method_colors[st.method_id] || COLORS[st.color_index % COLORS.length];
         dot.style.marginRight = "8px";
+        dot.style.flexShrink = "0";
 
         const title = document.createElement("div");
         title.style.display = "flex";
         title.style.alignItems = "center";
         title.style.fontWeight = "600";
         title.style.fontSize = "13px";
-        title.style.color = "var(--text-main, #111827)";
+        title.style.color = "var(--text-primary, #f1f5f9)";
         title.style.marginBottom = "4px";
+        title.style.overflow = "hidden";
         title.appendChild(dot);
-        title.appendChild(document.createTextNode(st.method_name));
+
+        const nameSpan = document.createElement("span");
+        nameSpan.style.overflow = "hidden";
+        nameSpan.style.textOverflow = "ellipsis";
+        nameSpan.style.whiteSpace = "nowrap";
+        nameSpan.textContent = st.method_name;
+        title.appendChild(nameSpan);
+
         if (st.n_runs > 1) {
           const span = document.createElement("span");
           span.style.fontSize = "11px";
           span.style.color = "var(--text-muted, #6b7280)";
           span.style.marginLeft = "6px";
+          span.style.flexShrink = "0";
           span.textContent = `(${st.n_runs} runs)`;
           title.appendChild(span);
         }
 
         const val = document.createElement("div");
-        val.style.fontSize = "16px";
+        val.style.fontSize = "14px";
         val.style.fontFamily = "monospace";
-        val.style.color = "var(--text-main, #374151)";
+        val.style.color = "var(--text-secondary, #94a3b8)";
         val.textContent = `${st.mean.toFixed(3)} ± ${st.std.toFixed(3)}`;
 
         card.appendChild(title);
@@ -1150,10 +1091,101 @@ async function exportCsvZip() {
   }
 }
 
+// ── Import CSV Folder (exported structure) ───────────────
+async function handleCsvFolderImport(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  // Group files by method name from folder structure
+  // Expected: root/method_name/run_name/file.csv  (4 parts)
+  //       or: root/method_name/file.csv            (3 parts)
+  //       or: method_name/file.csv                 (2 parts, if immediate subfolders selected)
+  const methodGroups = {};
+  let addedCount = 0;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.CSV')) continue;
+
+    const parts = file.webkitRelativePath.split('/');
+
+    let methodName;
+    if (parts.length >= 4) {
+      // root/method/run/file.csv → method is parts[1]
+      methodName = parts[1];
+    } else if (parts.length === 3) {
+      // root/method/file.csv → method is parts[1]
+      methodName = parts[1];
+    } else if (parts.length === 2) {
+      // method/file.csv → method is parts[0]
+      methodName = parts[0];
+    } else {
+      continue;
+    }
+
+    if (!methodGroups[methodName]) {
+      methodGroups[methodName] = [];
+    }
+    methodGroups[methodName].push(file);
+    addedCount++;
+  }
+
+  if (addedCount === 0) {
+    toast(t("error_prefix") + "CSVファイルが見つかりません", "warning");
+    event.target.value = "";
+    return;
+  }
+
+  const loading = document.getElementById("loading-overlay");
+  loading.style.display = "flex";
+  toast(t("csv_folder_importing"), "info");
+
+  try {
+    for (const methodName in methodGroups) {
+      let methodId = null;
+      const existing = state.methods.find(m => m.name === methodName);
+      if (existing) {
+        methodId = existing.id;
+      } else {
+        const data = await apiAddMethod(methodName);
+        methodId = data.method_id;
+        state.methods.push({
+          id: methodId,
+          name: data.name,
+          color_index: data.color_index,
+          color: COLORS[data.color_index % COLORS.length],
+          files: [],
+        });
+      }
+
+      const result = await apiUploadFiles(methodId, methodGroups[methodName]);
+      if (result.map_name) {
+        document.getElementById("param-map-name").value = result.map_name;
+      }
+      if (result.agent_count) {
+        document.getElementById("param-agent-count").value = result.agent_count;
+      }
+    }
+    toast(`${addedCount}${t("csv_folder_imported")}`, "success");
+  } catch (err) {
+    toast(`${t("error_prefix")}${err.message}`, "error");
+  } finally {
+    await refreshPlotData();
+    renderMethods();
+    renderTabs();
+    renderGraph();
+    loading.style.display = "none";
+    event.target.value = "";
+  }
+}
+
 // ── Auto-update graph on param change ────────────────────
 document.querySelectorAll("#params-content input").forEach(el => {
   const evts = el.type === "checkbox" ? ["change"] : ["change", "input"];
   evts.forEach(evt => el.addEventListener(evt, () => renderGraph()));
+});
+document.querySelectorAll("#params-content select").forEach(el => {
+  el.addEventListener("change", () => renderGraph());
 });
 
 // ── Initialize ───────────────────────────────────────────

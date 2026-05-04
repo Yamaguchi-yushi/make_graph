@@ -41,10 +41,10 @@ rcParams["ps.fonttype"]  = 3
 # グローバルフォントサイズ設定（軸ラベルを大きく）
 rcParams["font.size"] = 18           # 基本フォントサイズ
 rcParams["axes.titlesize"] = 24      # タイトル
-rcParams["axes.labelsize"] = 30      # 軸ラベル（大きく）
-rcParams["xtick.labelsize"] = 25     # x軸目盛り
-rcParams["ytick.labelsize"] = 25     # y軸目盛り
-rcParams["legend.fontsize"] = 30     # 凡例（ここで設定）
+rcParams["axes.labelsize"] = 35      # 軸ラベル（大きく）
+rcParams["xtick.labelsize"] = 35     # x軸目盛り
+rcParams["ytick.labelsize"] = 35     # y軸目盛り
+rcParams["legend.fontsize"] = 43     # 凡例（ここで設定）
 rcParams["legend.title_fontsize"] = 20  # 凡例タイトル
 
 CANONICAL = {
@@ -384,6 +384,7 @@ def main():
     ap.add_argument("--save-pdf", action="store_true", help="Also save PDF")
     ap.add_argument("--save-eps", action="store_true", help="Also save EPS")
     ap.add_argument("--no-legend", action="store_true", help="Hide legend")
+    ap.add_argument("--legend-loc", default="best", help='Legend location (e.g. "best", "upper right", "lower left")')
     ap.add_argument("--max-step", type=str, default=None, help="Max step to display (e.g., '8M', '5000000', '2.5M')")
     ap.add_argument("--min-step", type=str, default=None, help="Min step to display (e.g., '1M', '100000')")
     args = ap.parse_args()
@@ -533,7 +534,7 @@ def main():
             
             ax.grid(True, alpha=0.3)
             if not args.no_legend:
-                ax.legend(loc="best", framealpha=0.9)  # rcParams["legend.fontsize"]を使用
+                ax.legend(loc=args.legend_loc, framealpha=0.9)  # rcParams["legend.fontsize"]を使用
 
             plt.tight_layout()
 

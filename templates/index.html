@@ -98,15 +98,15 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="param-font-label" data-i18n="axis_label">軸ラベル</label>
-                <input type="number" id="param-font-label" value="30" min="8" max="60" step="1">
+                <input type="number" id="param-font-label" value="35" min="8" max="60" step="1">
               </div>
               <div class="form-group">
                 <label for="param-font-tick" data-i18n="axis_tick">軸の数値</label>
-                <input type="number" id="param-font-tick" value="25" min="8" max="60" step="1">
+                <input type="number" id="param-font-tick" value="35" min="8" max="60" step="1">
               </div>
               <div class="form-group">
                 <label for="param-font-legend" data-i18n="legend_size">凡例</label>
-                <input type="number" id="param-font-legend" value="30" min="8" max="60" step="1">
+                <input type="number" id="param-font-legend" value="43" min="8" max="60" step="1">
               </div>
             </div>
             <div class="form-row">
@@ -126,6 +126,24 @@
                 </label>
               </div>
             </div>
+            <div class="form-row">
+              <div class="form-group" style="flex: 1;">
+                <label for="param-legend-position" data-i18n="legend_position">凡例の位置</label>
+                <select id="param-legend-position">
+                  <option value="best" selected>自動 (best)</option>
+                  <option value="upper right">右上 (upper right)</option>
+                  <option value="upper left">左上 (upper left)</option>
+                  <option value="lower left">左下 (lower left)</option>
+                  <option value="lower right">右下 (lower right)</option>
+                  <option value="right">右 (right)</option>
+                  <option value="center left">中央左 (center left)</option>
+                  <option value="center right">中央右 (center right)</option>
+                  <option value="lower center">下中央 (lower center)</option>
+                  <option value="upper center">上中央 (upper center)</option>
+                  <option value="center">中央 (center)</option>
+                </select>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -137,10 +155,10 @@
               <button class="btn btn-ghost btn-sm" id="clear-files-btn" onclick="clearAllFiles()" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.3);">
                 <span data-i18n="clear_all_csvs">🗑️ 全CSV削除</span>
               </button>
-              <label for="folder-upload-input" class="btn btn-primary btn-sm" style="background:var(--success, #10b981); border:none; cursor:pointer;" id="load-folder-btn" title="整理されたCSVフォルダを選択して一括アップロード">
+              <label for="csv-folder-import-input" class="btn btn-primary btn-sm" style="background:var(--success, #10b981); border:none; cursor:pointer;" id="load-folder-btn" title="CSVフォルダを選択して一括アップロード">
                 <span data-i18n="load_folder">📁 フォルダ読込</span>
               </label>
-              <input type="file" id="folder-upload-input" webkitdirectory directory multiple style="display:none;" onchange="handleFolderUpload(event)">
+              <input type="file" id="csv-folder-import-input" webkitdirectory directory multiple style="display:none;" onchange="handleCsvFolderImport(event)">
               <button class="btn btn-primary btn-sm" id="add-method-btn" onclick="addMethod()">
                 <span data-i18n="add_method">＋ 手法追加</span>
               </button>
@@ -211,14 +229,14 @@
               alt="グラフプレビュー">
             <!-- Append stats here so they scroll together if image is large -->
             <div id="stats-container" class="stats-container"
-              style="display:none; margin-top: 24px; width: 100%; max-width: 900px;">
+              style="display:none; margin-top: 24px; width: 100%; padding: 0 20px; box-sizing: border-box;">
               <div
-                style="background: var(--bg-card, white); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                style="background: var(--bg-elevated, #1a1d2b); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid var(--border, rgba(148,163,184,.12));">
                 <h3
-                  style="margin: 0 0 12px 0; font-size: 15px; color: var(--text-main, #374151); border-bottom: 1px solid var(--border-color, #e5e7eb); padding-bottom: 8px;">
+                  style="margin: 0 0 12px 0; font-size: 15px; color: var(--text-primary, #f1f5f9); border-bottom: 1px solid var(--border, rgba(148,163,184,.12)); padding-bottom: 8px;">
                   <span data-i18n="final_perf">📊 最終パフォーマンス (最後1万ステップの平均 ± 標準偏差)</span>
                 </h3>
-                <div id="stats-content" style="display: flex; flex-wrap: wrap; gap: 12px;"></div>
+                <div id="stats-content" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;"></div>
               </div>
             </div>
           </div>
