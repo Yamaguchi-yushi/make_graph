@@ -32,7 +32,7 @@ const i18n = {
     "export_all_eps": "📦 EPS全保存",
     "graph_placeholder": "指標を追加してCSVファイルをアップロードすると<br>ここにグラフが表示されます",
     "generating": "画像を生成中...",
-    "final_perf": "📊 最終パフォーマンス (最後1万ステップの平均 ± 標準偏差)",
+    "final_perf": "📊 最終パフォーマンス (最後10%の平均 ± 標準偏差)",
     "toggle_lang": "🌐 Language",
     "drop_csv": "<span>📁</span> CSVファイルをドラッグ＆ドロップ",
     "method_added": "手法を追加しました",
@@ -91,7 +91,7 @@ const i18n = {
     "export_all_eps": "📦 Export All EPS",
     "graph_placeholder": "Add a method and upload CSV files<br>to display the graph here",
     "generating": "Generating image...",
-    "final_perf": "📊 Final Performance (Last 10k steps Mean ± STD)",
+    "final_perf": "📊 Final Performance (Last 10% steps Mean ± STD)",
     "toggle_lang": "🌐 Language",
     "drop_csv": "<span>📁</span> Drag & Drop CSV files",
     "method_added": "Method added",
@@ -150,7 +150,7 @@ const i18n = {
     "export_all_eps": "📦 Tout en EPS",
     "graph_placeholder": "Ajoutez une méthode et téléversez des fichiers CSV<br>pour afficher le graphique ici",
     "generating": "Génération de l'image...",
-    "final_perf": "📊 Performance finale (Moyenne ± Écart-type des 10k derniers pas)",
+    "final_perf": "📊 Performance finale (Moyenne ± Écart-type des derniers 10%)",
     "toggle_lang": "🌐 Language",
     "drop_csv": "<span>📁</span> Glisser-déposer des fichiers CSV",
     "method_added": "Méthode ajoutée",
@@ -838,8 +838,10 @@ async function renderGraph() {
           }
           if (step.length === 0) continue;
           const max_s = step[step.length - 1];
+          // 学習の最後10%の区間を対象にする
+          const LAST_FRACTION = 0.10;
           for (let i = 0; i < step.length; i++) {
-            if (step[i] >= max_s - 10000) {
+            if (step[i] >= max_s * (1 - LAST_FRACTION)) {
               all_values.push(value[i]);
             }
           }

@@ -65,7 +65,12 @@ for k, v in DEFAULT_RCPARAMS.items():
 DEFAULT_COLORS = ["#03AF7A", "#005AFF", "red", "#4DC4FF", "#F6AA00", "#FFF100"]
 
 # Y-axis label mapping (same as original script)
+# NOTE: keys are matched in order via substring search, so put more specific
+# keys (e.g. "task_completion") before generic ones (e.g. "rate").
 METRIC_Y_LABELS = {
+    "task_completion": "Task Completion",
+    "completion": "Task Completion",
+    "task": "Task Completion",
     "goal": "Goal Rate",
     "collision": "Collision Rate",
     "timeup": "Timeup Rate",
@@ -205,8 +210,12 @@ def _aggregate_series(series_list):
     return result
 
 
+# 最終性能を算出する末尾区間の割合（学習の最後10%）
+LAST_FRACTION = 0.10
+
+
 def compute_last_10k_stats(series_list):
-    """Calculate mean and std of the last 10,000 steps across runs for each method."""
+    """Calculate mean and std over the last LAST_FRACTION (=10%) of training across runs for each method."""
     from collections import defaultdict
     groups = defaultdict(list)
     for s in series_list:
@@ -222,7 +231,7 @@ def compute_last_10k_stats(series_list):
             values = np.array(s["value"])
             if len(steps) == 0: continue
             max_s = steps[-1]
-            mask = steps >= (max_s - 10000)
+            mask = steps >= (max_s * (1.0 - LAST_FRACTION))
             if np.any(mask):
                 all_values.extend(values[mask].tolist())
         if all_values:
@@ -456,7 +465,8 @@ def get_plot_data():
 
     # preferred order
     preferred = ["collision_mean", "goal_mean", "goal_rate", "timeup_mean",
-                 "timeout_rate", "cost_mean", "cost", "success_rate", "reward", "episode_len"]
+                 "timeout_rate", "cost_mean", "cost", "success_rate", "reward",
+                 "episode_len", "task_completion_mean", "task_completion"]
     ordered_metrics = [m for m in preferred if m in metrics_data]
     ordered_metrics += [m for m in metrics_data if m not in ordered_metrics]
 

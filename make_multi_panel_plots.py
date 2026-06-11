@@ -321,13 +321,17 @@ def aggregate_series_for_plot(series: List[SeriesMeta]) -> List[dict]:
             })
     return result
 
+# 最終性能を算出する末尾区間の割合（学習の最後10%）
+LAST_FRACTION = 0.10
+
+
 def print_last_10k_stats(series: List[SeriesMeta]):
     from collections import defaultdict
     groups = defaultdict(list)
     for s in series:
         groups[s.label].append(s)
-    
-    print("  [Last 10,000 Steps Stats]")
+
+    print("  [Last 10% Steps Stats]")
     for label, items in groups.items():
         all_values = []
         for s in items:
@@ -335,7 +339,7 @@ def print_last_10k_stats(series: List[SeriesMeta]):
             values = np.array(s.value)
             if len(steps) == 0: continue
             max_s = steps[-1]
-            mask = steps >= (max_s - 10000)
+            mask = steps >= (max_s * (1.0 - LAST_FRACTION))
             if np.any(mask):
                 all_values.extend(values[mask].tolist())
         if all_values:
@@ -485,7 +489,7 @@ def main():
         for s in all_series:
             by_metric.setdefault(s.metric, []).append(s)
 
-        preferred = ["collision_mean", "goal_rate", "timeout_rate", "cost", "success_rate", "reward", "episode_len"]
+        preferred = ["collision_mean", "goal_rate", "timeout_rate", "cost", "success_rate", "reward", "episode_len", "task_completion_mean", "task_completion"]
         metrics = [m for m in preferred if m in by_metric]
         if len(metrics) < 4:
             metrics += [m for m in by_metric if m not in metrics]
@@ -510,7 +514,9 @@ def main():
             
             # メトリクス名から縦軸ラベルを設定
             metric_lower = metric.lower()
-            if "goal" in metric_lower:
+            if "completion" in metric_lower or "task" in metric_lower:
+                ax.set_ylabel("Task Completion")
+            elif "goal" in metric_lower:
                 ax.set_ylabel("Goal Rate")
             elif "collision" in metric_lower:
                 ax.set_ylabel("Collision Rate")
