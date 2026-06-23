@@ -10,7 +10,20 @@ from typing import List, Tuple, Dict, Optional
 
 import pandas as pd
 import matplotlib
-matplotlib.use("module://matplotlib.backends.backend_cairo")
+# Use Cairo backend only if pycairo/cairocffi is actually installed; otherwise
+# fall back to Agg. matplotlib.use() is lazy and would not fail here, so a
+# missing pycairo would only crash later at savefig time (e.g. on a fresh
+# clone without the native cairo libraries).
+try:
+    import cairo  # noqa: F401  (pycairo)
+    _has_cairo = True
+except ImportError:
+    try:
+        import cairocffi  # noqa: F401
+        _has_cairo = True
+    except ImportError:
+        _has_cairo = False
+matplotlib.use("module://matplotlib.backends.backend_cairo" if _has_cairo else "Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager, rcParams
 

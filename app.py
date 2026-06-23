@@ -20,10 +20,28 @@ import numpy as np
 
 import pandas as pd
 import matplotlib
-# Cairo backend (same as original script) with Agg fallback
+# Cairo backend (same as original script) with Agg fallback.
+# NOTE: matplotlib.use() for a module backend is LAZY — it does not raise even
+# when pycairo/cairocffi are missing; the failure only surfaces later at render
+# time (plt.subplots / savefig). So a plain try/except around use() never
+# catches it, and a fresh `pip install -r requirements.txt` (which has no
+# pycairo) crashes preview/export with
+#   "cairo backend requires that pycairo>=1.14.0 or cairocffi is installed".
+# We probe the actual dependency up front and fall back to Agg, which produces
+# equivalent PNG/PDF/EPS output for these plots.
 try:
+    import cairo  # noqa: F401  (pycairo)
+    _has_cairo = True
+except ImportError:
+    try:
+        import cairocffi  # noqa: F401
+        _has_cairo = True
+    except ImportError:
+        _has_cairo = False
+
+if _has_cairo:
     matplotlib.use("module://matplotlib.backends.backend_cairo")
-except Exception:
+else:
     matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager, rcParams
