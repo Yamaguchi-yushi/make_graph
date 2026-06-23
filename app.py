@@ -233,35 +233,44 @@ LAST_FRACTION = 0.10
 
 
 def compute_last_10k_stats(series_list):
-    """Calculate mean and std over the last LAST_FRACTION (=10%) of training across runs for each method."""
+    """Compute final-performance mean and across-seed std for each method.
+
+    For each run (series), average the values over the last LAST_FRACTION (=10%)
+    of its step span. Then report the mean of those per-run means, and the std
+    ACROSS runs (seeds) — the convention used in RL/MARL papers. With a single
+    run the across-seed std is undefined, so std is returned as None.
+    """
     from collections import defaultdict
     groups = defaultdict(list)
     for s in series_list:
         groups[s.get("method_name", s.get("label", ""))].append(s)
-    
+
     stats = []
     for method_name, items in groups.items():
-        all_values = []
         color_index = items[0].get("color_index", 0)
         method_id = items[0].get("method_id", "")
+        per_run_means = []
         for s in items:
-            steps = np.array(s["step"])
-            values = np.array(s["value"])
-            if len(steps) == 0: continue
-            max_s = steps[-1]
-            mask = steps >= (max_s * (1.0 - LAST_FRACTION))
+            steps = np.array(s["step"], dtype=float)
+            values = np.array(s["value"], dtype=float)
+            if len(steps) == 0:
+                continue
+            lo, hi = steps[0], steps[-1]
+            threshold = hi - LAST_FRACTION * (hi - lo)
+            mask = steps >= threshold
             if np.any(mask):
-                all_values.extend(values[mask].tolist())
-        if all_values:
-            mean_val = np.mean(all_values)
-            std_val = np.std(all_values) if len(all_values) > 1 else 0.0
+                per_run_means.append(float(np.mean(values[mask])))
+        if per_run_means:
+            mean_val = float(np.mean(per_run_means))
+            # Sample std (ddof=1) across seeds; undefined for a single run.
+            std_val = float(np.std(per_run_means, ddof=1)) if len(per_run_means) > 1 else None
             stats.append({
                 "method_name": method_name,
                 "method_id": method_id,
                 "color_index": color_index,
-                "mean": float(mean_val),
-                "std": float(std_val),
-                "n_runs": len(items)
+                "mean": mean_val,
+                "std": std_val,
+                "n_runs": len(per_run_means)
             })
     return stats
 

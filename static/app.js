@@ -821,7 +821,11 @@ async function renderGraph() {
       }
       for (const mid in groups) {
         const g = groups[mid];
-        let all_values = [];
+        // 学習の最後10%区間で各run(シード)ごとに平均を出し、
+        // その「run間」で標準偏差を取る(論文標準のシード間std)。
+        // 1実行(n=1)では std は定義できないため null とする。
+        const LAST_FRACTION = 0.10;
+        const perRunMeans = [];
         for (const s of g.series) {
           let step = s.step;
           let value = s.value;
@@ -837,25 +841,28 @@ async function renderGraph() {
             value = fVal;
           }
           if (step.length === 0) continue;
-          const max_s = step[step.length - 1];
-          // 学習の最後10%の区間を対象にする
-          const LAST_FRACTION = 0.10;
+          const lo = step[0];
+          const hi = step[step.length - 1];
+          const threshold = hi - LAST_FRACTION * (hi - lo);
+          let sum = 0, cnt = 0;
           for (let i = 0; i < step.length; i++) {
-            if (step[i] >= max_s * (1 - LAST_FRACTION)) {
-              all_values.push(value[i]);
-            }
+            if (step[i] >= threshold) { sum += value[i]; cnt++; }
           }
+          if (cnt > 0) perRunMeans.push(sum / cnt);
         }
-        if (all_values.length > 0) {
-          const sum = all_values.reduce((a, b) => a + b, 0);
-          const mean = sum / all_values.length;
-          const sqSum = all_values.reduce((a, b) => a + (b - mean) ** 2, 0);
-          const std = Math.sqrt(sqSum / all_values.length || 0);
+        if (perRunMeans.length > 0) {
+          const mean = perRunMeans.reduce((a, b) => a + b, 0) / perRunMeans.length;
+          let std = null;
+          if (perRunMeans.length > 1) {
+            // 標本標準偏差 (ddof=1): シード間ばらつきの推定として標準的
+            const sqSum = perRunMeans.reduce((a, b) => a + (b - mean) ** 2, 0);
+            std = Math.sqrt(sqSum / (perRunMeans.length - 1));
+          }
           computedStats.push({
             method_id: mid,
             method_name: g.name,
             color_index: g.color_index,
-            n_runs: g.series.length,
+            n_runs: perRunMeans.length,
             mean: mean,
             std: std
           });
@@ -914,7 +921,9 @@ async function renderGraph() {
         val.style.fontSize = "14px";
         val.style.fontFamily = "monospace";
         val.style.color = "var(--text-secondary, #94a3b8)";
-        val.textContent = `${st.mean.toFixed(3)} ± ${st.std.toFixed(3)}`;
+        val.textContent = (st.std != null)
+          ? `${st.mean.toFixed(3)} ± ${st.std.toFixed(3)}`
+          : `${st.mean.toFixed(3)}`;
 
         card.appendChild(title);
         card.appendChild(val);
