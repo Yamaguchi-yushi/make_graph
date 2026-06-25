@@ -94,6 +94,14 @@
                 <input type="text" id="param-max-step" placeholder="例: 8M" data-i18n="ex_step_max">
               </div>
             </div>
+            <div class="form-row">
+              <div class="form-group" style="flex: 1;">
+                <label for="param-smoothing">
+                  <span data-i18n="smoothing">スムージング</span>: <span id="smoothing-value">0.000</span>
+                </label>
+                <input type="range" id="param-smoothing" min="0" max="0.999" step="0.001" value="0">
+              </div>
+            </div>
             <input type="hidden" id="param-line-width" value="1.2">
             <div class="form-row">
               <div class="form-group">

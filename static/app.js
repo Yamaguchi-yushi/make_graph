@@ -57,7 +57,8 @@ const i18n = {
     "clear_all_csvs": "🗑️ 全CSV削除",
     "confirm_clear_csvs": "全ての手法のCSVファイルを一括削除しますか？",
     "csvs_cleared": "全CSVファイルを削除しました",
-    "load_folder": "📁 フォルダ読込"
+    "load_folder": "📁 フォルダ読込",
+    "smoothing": "スムージング"
   },
   en: {
     "title": "Graph Visualizer",
@@ -116,6 +117,7 @@ const i18n = {
     "clear_all_csvs": "🗑️ Clear All CSVs",
     "confirm_clear_csvs": "Are you sure you want to remove all CSV files from all methods?",
     "csvs_cleared": "All CSV files cleared",
+    "smoothing": "smoothing",
     "load_folder": "📁 Load Folder"
   },
   fr: {
@@ -175,6 +177,7 @@ const i18n = {
     "clear_all_csvs": "🗑️ Effacer tous les CSV",
     "confirm_clear_csvs": "Voulez-vous vraiment supprimer tous les fichiers CSV de toutes les méthodes ?",
     "csvs_cleared": "Tous les fichiers CSV ont été supprimés",
+    "smoothing": "lissage",
     "load_folder": "📁 Charger Dossier"
   }
 };
@@ -285,6 +288,7 @@ function getParams() {
     min_step: parseStepValue(document.getElementById("param-min-step").value),
     max_step: parseStepValue(document.getElementById("param-max-step").value),
     line_width: parseFloat(document.getElementById("param-line-width").value) || 1.2,
+    smoothing: parseFloat(document.getElementById("param-smoothing").value) || 0,
     font_label: parseInt(document.getElementById("param-font-label").value) || 35,
     font_tick: parseInt(document.getElementById("param-font-tick").value) || 35,
     font_legend: parseInt(document.getElementById("param-font-legend").value) || 43,
@@ -1216,9 +1220,24 @@ async function handleCsvFolderImport(event) {
 
 // ── Auto-update graph on param change ────────────────────
 document.querySelectorAll("#params-content input").forEach(el => {
+  if (el.type === "range") return;  // sliders handled separately (debounced)
   const evts = el.type === "checkbox" ? ["change"] : ["change", "input"];
   evts.forEach(evt => el.addEventListener(evt, () => renderGraph()));
 });
+ 
+// ── Smoothing slider (TensorBoard-style EMA) ─────────────
+// Debounced so dragging doesn't flood the server with preview renders.
+(function initSmoothingSlider() {
+  const slider = document.getElementById("param-smoothing");
+  const label = document.getElementById("smoothing-value");
+  if (!slider) return;
+  let debounce;
+  slider.addEventListener("input", () => {
+    if (label) label.textContent = parseFloat(slider.value).toFixed(3);
+    clearTimeout(debounce);
+    debounce = setTimeout(() => renderGraph(), 150);
+  });
+})();
 
 // ── Legend Position (per-metric) ─────────────────────────
 function getLegendSetting(metric) {

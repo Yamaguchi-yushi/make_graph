@@ -181,6 +181,28 @@ def load_csv_data(file_bytes: bytes):
     min_len = min(len(step), len(value))
     return step[:min_len], value[:min_len]
 
+def _smooth_ema(values, weight):
+    """TensorBoardと同じEMA(指数移動平均)による平滑化.
+ 
+    S_t = w * S_{t-1} + (1 - w) * X_t をデバイアス補正(1 - w^t で除算)付きで適用する。
+    weight は 0〜1 未満。0 のときは平滑化なし(元の値をそのまま返す)。
+    """
+    if not weight or weight <= 0:
+        return values
+    smoothed = []
+    last = 0.0
+    num_acc = 0
+    for v in values:
+        if v is None or not np.isfinite(v):
+            smoothed.append(v)
+            continue
+        last = last * weight + (1.0 - weight) * v
+        num_acc += 1
+        debias = 1.0 - weight ** num_acc
+        smoothed.append(last / debias if debias > 0 else last)
+    return smoothed
+ 
+
 
 def _aggregate_series(series_list):
     """同一method_idのseriesをグルーピングし、複数ある場合は平均+min/max rangeに集約する。
@@ -613,6 +635,7 @@ def _render_graph_to_buf(series_list, params, fmt):
     legend_auto = params.get("legend_auto", True)
     legend_x = params.get("legend_x", 1.0)
     legend_y = params.get("legend_y", 1.0)
+    smoothing = params.get("smoothing", 0) or 0
 
     rcParams["font.size"] = 18
     rcParams["axes.titlesize"] = font_label
@@ -623,6 +646,11 @@ def _render_graph_to_buf(series_list, params, fmt):
     rcParams["legend.title_fontsize"] = int(font_legend * 0.7)
 
     fig, ax = plt.subplots(1, 1, figsize=(fig_w, fig_h))
+    # Apply TensorBoard-style EMA smoothing to each raw run before aggregation,
+    # so that both the mean line and the min/max band reflect the smoothed curves.
+    if smoothing > 0:
+        for s in series_list:
+            s["value"] = _smooth_ema(s["value"], smoothing)
 
     # Aggregate series: group by method_id, compute mean + min/max if multiple
     series_list = _aggregate_series(series_list)
