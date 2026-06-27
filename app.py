@@ -601,6 +601,7 @@ def _build_filename(params, session, metric, fmt):
     fig_h = params.get("height", 7.5)
     map_name = params.get("map_name", session.get("map_name", "unknown"))
     agent_count = params.get("agent_count", session.get("agent_count", ""))
+    category = params.get("category", "")
     memo = params.get("memo", "")
     figsize_str = f"{int(fig_w)}-{int(fig_h)}"
     parts = []
@@ -608,6 +609,8 @@ def _build_filename(params, session, metric, fmt):
         parts.append(map_name)
     if agent_count:
         parts.append(f"{agent_count}agent")
+    if category:
+        parts.append(category)
     if memo:
         parts.append(memo)
     parts.append(metric)
@@ -701,6 +704,100 @@ def _render_graph_to_buf(series_list, params, fmt):
     return buf
 
 
+def _render_legend_to_buf(entries, params, fmt):
+    """Render a standalone legend (line samples + labels only, no axes) and
+    crop the output tightly to the legend box.
+
+    entries: list of {"label": str, "color": str}
+    Layout: a single row by default; wraps to 2 rows when there are many
+    entries (> legend_max_per_row).
+    """
+    from matplotlib.lines import Line2D
+
+    line_width = params.get("legend_line_width", params.get("line_width", 3))
+    font_legend = params.get("legend_font", params.get("font_legend", 24))
+    dpi = params.get("dpi", 300)
+    show_frame = params.get("legend_frame", False)
+    transparent = params.get("legend_transparent", True)
+    orientation = params.get("legend_orientation", "horizontal")
+    max_per_row = params.get("legend_max_per_row", 8)
+
+    n = len(entries)
+    if orientation == "vertical":
+        ncol = 1
+    else:
+        ncol = params.get("legend_ncol")
+        if not ncol:
+            # 基本は1行、多い場合のみ2行に折り返す
+            if n <= max_per_row:
+                ncol = n
+            else:
+                ncol = -(-n // 2)  # ceil(n / 2) → 2 rows
+    ncol = max(1, int(ncol))
+
+    rcParams["legend.fontsize"] = font_legend
+
+    # The figure size does not constrain the legend: get_window_extent()
+    # reports the true rendered extent and bbox_inches crops to it. Use a
+    # generous canvas so nothing is clipped before measuring.
+    fig = plt.figure(figsize=(max(ncol * 3, 10), max(n / max(ncol, 1), 2.5)))
+    handles = [Line2D([0], [0], color=e["color"], lw=line_width) for e in entries]
+    labels = [e["label"] for e in entries]
+    legend = fig.legend(handles, labels, loc="center", ncol=ncol,
+                        frameon=show_frame, framealpha=0.9)
+
+    fig.canvas.draw()
+    bbox = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+
+    buf = io.BytesIO()
+    save_kwargs = {"bbox_inches": bbox, "pad_inches": 0.05, "transparent": transparent}
+    if fmt == "png":
+        save_kwargs["dpi"] = dpi
+    fig.savefig(buf, format=fmt, **save_kwargs)
+    plt.close(fig)
+    buf.seek(0)
+    return buf
+
+
+@app.route("/api/export-legend", methods=["POST"])
+def export_legend():
+    """手法の凡例だけを独立したファイル(PDF等)として書き出す。
+
+    論文で複数の図を並べ、その上に共通凡例を1つ貼る用途向け。
+    """
+    data = request.get_json(force=True)
+    sid = data.get("session_id", DEFAULT_SESSION)
+    fmt = data.get("format", "pdf")
+    params = data.get("params", {})
+    session = _ensure_session(sid)
+
+    method_colors = params.get("method_colors", {})
+    entries = []
+    for method in session["methods"]:
+        if not method["files"]:
+            continue  # グラフに出ない手法は凡例にも出さない
+        color = method_colors.get(
+            method["id"],
+            DEFAULT_COLORS[method["color_index"] % len(DEFAULT_COLORS)],
+        )
+        entries.append({"label": method["name"], "color": color})
+
+    if not entries:
+        return jsonify({"error": "凡例に出せる手法がありません"}), 400
+
+    buf = _render_legend_to_buf(entries, params, fmt)
+
+    mime = {"png": "image/png", "pdf": "application/pdf",
+            "eps": "application/postscript", "svg": "image/svg+xml"}
+    download_name = _build_filename(params, session, "legend", fmt)
+    return send_file(
+        buf,
+        mimetype=mime.get(fmt, "application/octet-stream"),
+        as_attachment=True,
+        download_name=download_name,
+    )
+
+
 @app.route("/api/export-all", methods=["POST"])
 def export_all_graphs():
     """全メトリクスのグラフを一括ZIPダウンロード"""
@@ -752,12 +849,15 @@ def export_all_graphs():
     zip_buf.seek(0)
     map_name = params.get("map_name", session.get("map_name", "graphs"))
     agent_count = params.get("agent_count", session.get("agent_count", ""))
+    category = params.get("category", "")
     memo = params.get("memo", "")
     zip_parts = []
     if map_name:
         zip_parts.append(map_name)
     if agent_count:
         zip_parts.append(f"{agent_count}agent")
+    if category:
+        zip_parts.append(category)
     if memo:
         zip_parts.append(memo)
     zip_parts.append("all_metrics")
@@ -783,6 +883,7 @@ def export_csv_zip():
 
     map_name = data.get("map_name", session.get("map_name", ""))
     agent_count = data.get("agent_count", session.get("agent_count", ""))
+    category = data.get("category", "")
     memo = data.get("memo", "")
 
     # Build root folder name
@@ -791,6 +892,8 @@ def export_csv_zip():
         root_parts.append(map_name)
     if agent_count:
         root_parts.append(f"{agent_count}agent")
+    if category:
+        root_parts.append(category)
     if memo:
         root_parts.append(memo)
     root_folder = "_".join(root_parts) if root_parts else "csv_data"

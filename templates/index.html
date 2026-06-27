@@ -75,6 +75,12 @@
               </div>
             </div>
             <div class="form-row">
+              <div class="form-group" style="flex: 1;">
+                <label for="param-category" data-i18n="category">🏷️ 種別（任意・ファイル名に反映）</label>
+                <input type="text" id="param-category" placeholder="任意 例: ablation" data-i18n-placeholder="category_placeholder">
+              </div>
+            </div>
+            <div class="form-row">
               <div class="form-group">
                 <label for="param-width" data-i18n="width">幅</label>
                 <input type="number" id="param-width" value="20" min="4" max="30" step="0.5">
@@ -167,10 +173,18 @@
       <!-- Right Panel: Graph Preview -->
       <main class="graph-area" id="graph-area">
         <div class="graph-toolbar" id="graph-toolbar">
+          <div class="mode-toggle" id="mode-toggle" style="display:flex; gap:4px; margin-right:12px;">
+            <button class="btn btn-ghost btn-sm mode-btn active" id="mode-graph-btn" onclick="setMode('graph')">
+              <span data-i18n="mode_graph">📊 グラフ作成</span>
+            </button>
+            <button class="btn btn-ghost btn-sm mode-btn" id="mode-legend-btn" onclick="setMode('legend')">
+              <span data-i18n="mode_legend">🏷️ 凡例出力</span>
+            </button>
+          </div>
           <div class="tab-bar" id="tab-bar">
             <!-- tabs dynamically -->
           </div>
-          <div class="export-buttons">
+          <div class="export-buttons" id="graph-export-buttons">
             <button class="btn btn-ghost btn-sm" onclick="exportCurrent('png')" id="export-png-btn">
               <span>📥 PNG</span>
             </button>
@@ -193,6 +207,49 @@
             <span class="export-divider"></span>
             <button class="btn btn-export-all btn-sm" onclick="exportCsvZip()" id="export-csv-zip-btn">
               <span data-i18n="export_csv_zip">📁 CSV整理</span>
+            </button>
+          </div>
+
+          <!-- Legend mode toolbar (shown only in 凡例出力 mode) -->
+          <div class="legend-toolbar" id="legend-toolbar"
+               style="display:none; align-items:center; gap:14px; flex-wrap:wrap;">
+            <label class="legend-ctl"><span data-i18n="legend_rows">行数</span>
+              <select id="legend-rows" onchange="onLegendControlChange()">
+                <option value="auto" data-i18n="legend_rows_auto">自動</option>
+                <option value="1" data-i18n="legend_rows_1">1行</option>
+                <option value="2" data-i18n="legend_rows_2">2行</option>
+                <option value="manual" data-i18n="legend_rows_manual">列数指定</option>
+              </select>
+            </label>
+            <label class="legend-ctl" id="legend-ncol-wrap" style="display:none;"><span data-i18n="legend_ncol">列数</span>
+              <input type="number" id="legend-ncol" value="4" min="1" max="20" style="width:56px;"
+                     onchange="onLegendControlChange()">
+            </label>
+            <label class="legend-ctl"><span data-i18n="legend_orient">向き</span>
+              <select id="legend-orientation" onchange="onLegendControlChange()">
+                <option value="horizontal" data-i18n="legend_orient_h">横</option>
+                <option value="vertical" data-i18n="legend_orient_v">縦</option>
+              </select>
+            </label>
+            <label class="legend-ctl"><span data-i18n="legend_lw">線の太さ</span>
+              <input type="number" id="legend-line-width" value="3" min="0.5" max="12" step="0.5"
+                     style="width:56px;" onchange="onLegendControlChange()">
+            </label>
+            <label class="legend-ctl"><span data-i18n="legend_font">文字</span>
+              <input type="number" id="legend-font" value="24" min="8" max="60" step="1"
+                     style="width:56px;" onchange="onLegendControlChange()">
+            </label>
+            <label class="legend-ctl">
+              <input type="checkbox" id="legend-frame" onchange="onLegendControlChange()">
+              <span data-i18n="legend_frame">枠</span>
+            </label>
+            <label class="legend-ctl">
+              <input type="checkbox" id="legend-transparent" checked onchange="onLegendControlChange()">
+              <span data-i18n="legend_transparent">背景透過</span>
+            </label>
+            <span class="export-divider"></span>
+            <button class="btn btn-ghost btn-sm" onclick="exportLegend('pdf')" id="legend-export-pdf-btn">
+              <span data-i18n="export_legend">🏷️ 凡例PDF出力</span>
             </button>
           </div>
         </div>

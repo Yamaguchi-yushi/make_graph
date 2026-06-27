@@ -51,6 +51,24 @@ const i18n = {
     "graphs_zip_downloaded": "件のグラフをZIPでダウンロードしました",
     "batch_export_failed": "一括エクスポート失敗: ",
     "export_csv_zip": "📁 CSV整理",
+    "export_legend": "🏷️ 凡例PDF出力",
+    "mode_graph": "📊 グラフ作成",
+    "mode_legend": "🏷️ 凡例出力",
+    "legend_rows": "行数",
+    "legend_rows_auto": "自動",
+    "legend_rows_1": "1行",
+    "legend_rows_2": "2行",
+    "legend_rows_manual": "列数指定",
+    "legend_ncol": "列数",
+    "legend_orient": "向き",
+    "legend_orient_h": "横",
+    "legend_orient_v": "縦",
+    "legend_lw": "線の太さ",
+    "legend_font": "文字",
+    "legend_frame": "枠",
+    "legend_transparent": "背景透過",
+    "category": "🏷️ 種別（任意・ファイル名に反映）",
+    "category_placeholder": "任意 例: ablation",
     "csv_exporting": "CSVファイルを整理してエクスポート中...",
     "csv_zip_downloaded": "CSVファイルをフォルダ整理してダウンロードしました",
     "csv_export_failed": "CSVエクスポート失敗: ",
@@ -111,6 +129,24 @@ const i18n = {
     "graphs_zip_downloaded": " graphs downloaded as ZIP",
     "batch_export_failed": "Batch export failed: ",
     "export_csv_zip": "📁 Organize CSV",
+    "export_legend": "🏷️ Export Legend PDF",
+    "mode_graph": "📊 Graph",
+    "mode_legend": "🏷️ Legend",
+    "legend_rows": "Rows",
+    "legend_rows_auto": "Auto",
+    "legend_rows_1": "1 row",
+    "legend_rows_2": "2 rows",
+    "legend_rows_manual": "Set columns",
+    "legend_ncol": "Cols",
+    "legend_orient": "Orient.",
+    "legend_orient_h": "Horizontal",
+    "legend_orient_v": "Vertical",
+    "legend_lw": "Line width",
+    "legend_font": "Font",
+    "legend_frame": "Frame",
+    "legend_transparent": "Transparent",
+    "category": "🏷️ Tag (optional, in filename)",
+    "category_placeholder": "optional e.g. ablation",
     "csv_exporting": "Organizing and exporting CSV files...",
     "csv_zip_downloaded": "CSV files downloaded in organized folders",
     "csv_export_failed": "CSV export failed: ",
@@ -171,6 +207,24 @@ const i18n = {
     "graphs_zip_downloaded": " graphiques téléchargés en ZIP",
     "batch_export_failed": "Échec de l'exportation groupée : ",
     "export_csv_zip": "📁 Organiser CSV",
+    "export_legend": "🏷️ Exporter la légende PDF",
+    "mode_graph": "📊 Graphique",
+    "mode_legend": "🏷️ Légende",
+    "legend_rows": "Lignes",
+    "legend_rows_auto": "Auto",
+    "legend_rows_1": "1 ligne",
+    "legend_rows_2": "2 lignes",
+    "legend_rows_manual": "Colonnes",
+    "legend_ncol": "Col.",
+    "legend_orient": "Orient.",
+    "legend_orient_h": "Horizontal",
+    "legend_orient_v": "Vertical",
+    "legend_lw": "Épaisseur",
+    "legend_font": "Police",
+    "legend_frame": "Cadre",
+    "legend_transparent": "Transparent",
+    "category": "🏷️ Type (optionnel, dans le nom)",
+    "category_placeholder": "optionnel ex: ablation",
     "csv_exporting": "Organisation et exportation des fichiers CSV...",
     "csv_zip_downloaded": "Fichiers CSV téléchargés dans des dossiers organisés",
     "csv_export_failed": "Échec de l'exportation CSV : ",
@@ -251,6 +305,7 @@ let state = {
   activeMetric: null,   // currently selected metric tab
   expandedMethods: new Set(),  // track which method cards are expanded
   legendSettings: {},   // metric -> {auto: true, x: 1.0, y: 1.0}
+  mode: "graph",        // "graph" | "legend"
 };
 
 // ── Helpers ──────────────────────────────────────────────
@@ -299,6 +354,7 @@ function getParams() {
     map_name: document.getElementById("param-map-name").value,
     agent_count: document.getElementById("param-agent-count").value,
     memo: document.getElementById("param-memo").value,
+    category: document.getElementById("param-category").value,
     method_colors: methodColors,
   };
 }
@@ -777,6 +833,10 @@ function renderTabs() {
 let currentPreviewUrl = null;
 
 async function renderGraph() {
+  // In legend output mode, all refresh paths render the legend preview instead.
+  if (state.mode === "legend") {
+    return renderLegendPreview();
+  }
   const wrapper = document.getElementById("preview-wrapper");
   const imgData = document.getElementById("matplotlib-preview");
   const placeholder = document.getElementById("graph-placeholder");
@@ -1020,9 +1080,174 @@ async function exportCurrent(format) {
     const parts = [];
     if (params.map_name) parts.push(params.map_name);
     if (params.agent_count) parts.push(`${params.agent_count}agent`);
+    if (params.category) parts.push(params.category);
     if (params.memo) parts.push(params.memo);
     parts.push(state.activeMetric);
     parts.push(`${Math.round(params.width)}-${Math.round(params.height)}`);
+    a.download = parts.join("_") + `.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`${format.toUpperCase()} ${t("downloaded")}`, "success");
+  } catch (e) {
+    toast(`${t("export_failed")}${e.message}`, "error");
+  }
+}
+
+// ── Legend output mode ───────────────────────────────────
+// NOTE: state.methods[].files is NOT populated client-side; the server
+// reports file counts via plotData.methods[].file_count. Use that to know
+// which methods actually appear in the plots (and thus in the legend).
+function methodsWithFiles() {
+  if (!state.plotData || !state.plotData.methods) return [];
+  return state.plotData.methods.filter(m => m.file_count > 0);
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  const isLegend = mode === "legend";
+
+  document.getElementById("mode-graph-btn").classList.toggle("active", !isLegend);
+  document.getElementById("mode-legend-btn").classList.toggle("active", isLegend);
+
+  // Toggle toolbars
+  document.getElementById("tab-bar").style.display = isLegend ? "none" : "";
+  document.getElementById("graph-export-buttons").style.display = isLegend ? "none" : "";
+  document.getElementById("legend-toolbar").style.display = isLegend ? "flex" : "none";
+  // The graph-only legend-position controls never apply in legend mode
+  const posCtl = document.getElementById("legend-controls");
+  if (posCtl && isLegend) posCtl.style.display = "none";
+  // Stats are graph-only
+  const stats = document.getElementById("stats-container");
+  if (stats && isLegend) stats.style.display = "none";
+
+  if (isLegend) {
+    renderLegendPreview();
+  } else {
+    renderGraph();
+  }
+}
+
+function onLegendControlChange() {
+  // Show ncol input only when "列数指定" is selected
+  const rows = document.getElementById("legend-rows").value;
+  document.getElementById("legend-ncol-wrap").style.display =
+    (rows === "manual") ? "" : "none";
+  if (state.mode === "legend") renderLegendPreview();
+}
+
+function getLegendParams() {
+  const params = getParams();  // shares method_colors, map_name, agent_count, memo, dpi
+  const rows = document.getElementById("legend-rows").value;
+  const ncolInput = parseInt(document.getElementById("legend-ncol").value) || 0;
+  const orientation = document.getElementById("legend-orientation").value;
+
+  // Resolve rows selection into ncol / max_per_row
+  const nMethods = methodsWithFiles().length;
+  if (orientation === "vertical") {
+    params.legend_orientation = "vertical";
+  } else {
+    params.legend_orientation = "horizontal";
+    if (rows === "1") {
+      params.legend_ncol = Math.max(1, nMethods);
+    } else if (rows === "2") {
+      params.legend_ncol = Math.max(1, Math.ceil(nMethods / 2));
+    } else if (rows === "manual") {
+      params.legend_ncol = Math.max(1, ncolInput);
+    } // "auto": leave unset → backend default (1 row, wraps to 2 when many)
+  }
+  params.legend_line_width = parseFloat(document.getElementById("legend-line-width").value) || 3;
+  params.legend_font = parseInt(document.getElementById("legend-font").value) || 24;
+  params.legend_frame = document.getElementById("legend-frame").checked;
+  params.legend_transparent = document.getElementById("legend-transparent").checked;
+  return params;
+}
+
+let currentLegendPreviewUrl = null;
+async function renderLegendPreview() {
+  const wrapper = document.getElementById("preview-wrapper");
+  const imgData = document.getElementById("matplotlib-preview");
+  const placeholder = document.getElementById("graph-placeholder");
+  const loading = document.getElementById("loading-overlay");
+  const stats = document.getElementById("stats-container");
+  if (stats) stats.style.display = "none";
+
+  if (methodsWithFiles().length === 0) {
+    wrapper.style.display = "none";
+    placeholder.style.display = "flex";
+    return;
+  }
+
+  placeholder.style.display = "none";
+  wrapper.style.display = "none";
+  loading.style.display = "flex";
+
+  try {
+    const res = await fetch("/api/export-legend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: SESSION_ID,
+        format: "png",
+        params: getLegendParams(),
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      toast(`${t("error_prefix")}${err.error}`, "error");
+      loading.style.display = "none";
+      return;
+    }
+    const blob = await res.blob();
+    if (currentLegendPreviewUrl) URL.revokeObjectURL(currentLegendPreviewUrl);
+    currentLegendPreviewUrl = URL.createObjectURL(blob);
+    imgData.src = currentLegendPreviewUrl;
+    loading.style.display = "none";
+    wrapper.style.display = "flex";
+  } catch (e) {
+    toast(`${t("export_failed")}${e.message}`, "error");
+    loading.style.display = "none";
+  }
+}
+
+// ── Export Legend only (standalone file) ─────────────────
+async function exportLegend(format) {
+  if (methodsWithFiles().length === 0) {
+    toast(t("no_export"), "error");
+    return;
+  }
+
+  const params = getLegendParams();
+  toast(`${format.toUpperCase()} ${t("exporting")}`, "info");
+
+  try {
+    const res = await fetch("/api/export-legend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: SESSION_ID,
+        format: format,
+        params: params,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      toast(`${t("error_prefix")}${err.error}`, "error");
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    // Filename = whichever optional fields are filled, joined by "_", + "legend".
+    // すべて任意: 空の項目は省略される。
+    const parts = [];
+    if (params.map_name) parts.push(params.map_name);
+    if (params.agent_count) parts.push(`${params.agent_count}agent`);
+    if (params.category) parts.push(params.category);
+    if (params.memo) parts.push(params.memo);
+    parts.push("legend");
     a.download = parts.join("_") + `.${format}`;
     a.click();
     URL.revokeObjectURL(url);
@@ -1102,6 +1327,7 @@ async function exportCsvZip() {
         session_id: SESSION_ID,
         map_name: params.map_name,
         agent_count: params.agent_count,
+        category: params.category,
         memo: params.memo,
       }),
     });

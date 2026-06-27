@@ -613,6 +613,40 @@ body {
   gap: 12px;
 }
 
+/* ── Mode toggle (Graph / Legend) ──────────────────────── */
+.mode-toggle {
+  flex-shrink: 0;
+}
+.mode-btn.active {
+  background: var(--accent, #6366f1);
+  color: #fff;
+  border-color: var(--accent, #6366f1);
+}
+
+/* ── Legend output mode toolbar ────────────────────────── */
+.legend-toolbar {
+  flex: 1;
+  justify-content: flex-end;
+}
+.legend-ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.legend-ctl select,
+.legend-ctl input[type="number"] {
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-base, #0c0e14);
+  color: var(--text-primary, #f1f5f9);
+  font-size: .78rem;
+}
+
 /* ── Legend Position Controls ──────────────────────────── */
 .legend-controls {
   display: flex;
