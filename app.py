@@ -743,21 +743,22 @@ def _render_legend_to_buf(entries, params, fmt):
     legend = fig.legend(handles, labels, loc="center", ncol=ncol,
                         frameon=show_frame, framealpha=0.9)
 
-    # Two-pass sizing: a centered legend wider/taller than the canvas would
-    # overflow both edges and get clipped (long labels / large font / many
-    # columns). First measure the legend, then resize the figure to fit it so
-    # the whole legend is rendered, then crop tightly to the legend box.
+    # A centered legend wider/taller than the canvas would overflow both edges
+    # and get clipped (long labels / large font / many columns). First measure
+    # the legend and resize the figure to fit it so the whole legend renders.
     fig.canvas.draw()
     ext = legend.get_window_extent()
     w_in = ext.width / fig.dpi
     h_in = ext.height / fig.dpi
     fig.set_size_inches(max(w_in + 0.4, 1.0), max(h_in + 0.4, 0.5))
 
-    fig.canvas.draw()
-    bbox = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-
+    # Crop with matplotlib's own tight-bbox machinery (passing the legend as an
+    # extra artist) instead of a hand-computed bbox. The manual bbox was offset
+    # under the Cairo/PDF backend (extra space on the left, content clipped on
+    # the right); "tight" computes the crop correctly per backend.
     buf = io.BytesIO()
-    save_kwargs = {"bbox_inches": bbox, "pad_inches": 0.05, "transparent": transparent}
+    save_kwargs = {"bbox_inches": "tight", "bbox_extra_artists": (legend,),
+                   "pad_inches": 0.05, "transparent": transparent}
     if fmt == "png":
         save_kwargs["dpi"] = dpi
     fig.savefig(buf, format=fmt, **save_kwargs)
