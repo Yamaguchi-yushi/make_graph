@@ -737,14 +737,21 @@ def _render_legend_to_buf(entries, params, fmt):
 
     rcParams["legend.fontsize"] = font_legend
 
-    # The figure size does not constrain the legend: get_window_extent()
-    # reports the true rendered extent and bbox_inches crops to it. Use a
-    # generous canvas so nothing is clipped before measuring.
-    fig = plt.figure(figsize=(max(ncol * 3, 10), max(n / max(ncol, 1), 2.5)))
+    fig = plt.figure(figsize=(10, 2))
     handles = [Line2D([0], [0], color=e["color"], lw=line_width) for e in entries]
     labels = [e["label"] for e in entries]
     legend = fig.legend(handles, labels, loc="center", ncol=ncol,
                         frameon=show_frame, framealpha=0.9)
+
+    # Two-pass sizing: a centered legend wider/taller than the canvas would
+    # overflow both edges and get clipped (long labels / large font / many
+    # columns). First measure the legend, then resize the figure to fit it so
+    # the whole legend is rendered, then crop tightly to the legend box.
+    fig.canvas.draw()
+    ext = legend.get_window_extent()
+    w_in = ext.width / fig.dpi
+    h_in = ext.height / fig.dpi
+    fig.set_size_inches(max(w_in + 0.4, 1.0), max(h_in + 0.4, 0.5))
 
     fig.canvas.draw()
     bbox = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
