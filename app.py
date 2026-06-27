@@ -46,21 +46,29 @@ else:
 import matplotlib.pyplot as plt
 from matplotlib import font_manager, rcParams
 
-# ── Japanese font setup (identical to original script) ───
-_font_found = False
+# ── Font setup ───────────────────────────────────────────
+# Use a serif (Times-like) family for Latin text — the common choice for
+# LaTeX/paper figures — with a Japanese font appended as a fallback so any
+# Japanese labels still render (matplotlib >=3.6 falls back across the family
+# list per glyph). Times New Roman is used when present; DejaVu Serif (always
+# shipped with matplotlib) is the portable fallback.
+_jp_font = None
 for _name in ["Hiragino Sans", "Hiragino Kaku Gothic Pro",
               "Noto Sans CJK JP", "Yu Gothic", "IPAexGothic", "TakaoPGothic"]:
     if any(_name in f.name for f in font_manager.fontManager.ttflist):
-        rcParams["font.family"] = _name
-        _font_found = True
+        _jp_font = _name
         break
+if _jp_font is None:
+    _jp = [f.name for f in font_manager.fontManager.ttflist
+           if any(n in f.name for n in
+                  ['Gothic', 'Hiragino', 'Noto', 'IPA', 'Takao', 'Meiryo'])]
+    _jp_font = _jp[0] if _jp else None
 
-if not _font_found:
-    jp_fonts = [f for f in font_manager.fontManager.ttflist
-                if any(n in f.name for n in
-                       ['Gothic', 'Hiragino', 'Noto', 'IPA', 'Takao', 'Meiryo'])]
-    if jp_fonts:
-        rcParams["font.family"] = jp_fonts[0].name
+_serif_fonts = ["Times New Roman", "Times", "DejaVu Serif"]
+if _jp_font:
+    _serif_fonts.append(_jp_font)
+rcParams["font.family"] = "serif"
+rcParams["font.serif"] = _serif_fonts
 
 rcParams["axes.unicode_minus"] = False
 rcParams["pdf.fonttype"] = 3
