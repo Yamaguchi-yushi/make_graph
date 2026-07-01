@@ -112,6 +112,10 @@ METRIC_Y_LABELS = {
 # ── Flask App ─────────────────────────────────────────────
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024 * 1024  # 64 MB
+# Do not let the browser cache static assets (app.js/style.css). A stale
+# cached app.js was silently exporting CSV metadata without colors; disabling
+# caching means edits (and pulled updates) always take effect on reload.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 # In-memory store
 # session -> { methods: [ {id, name, color_index, files: [{id, filename, metric, step, value}]} ] }
