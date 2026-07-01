@@ -185,25 +185,28 @@
             <!-- tabs dynamically -->
           </div>
           <div class="export-buttons" id="graph-export-buttons">
-            <button class="btn btn-ghost btn-sm" onclick="exportCurrent('png')" id="export-png-btn">
-              <span>📥 PNG</span>
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="exportCurrent('pdf')" id="export-pdf-btn">
-              <span>📄 PDF</span>
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="exportCurrent('eps')" id="export-eps-btn">
-              <span>📐 EPS</span>
-            </button>
-            <span class="export-divider"></span>
-            <button class="btn btn-export-all btn-sm" onclick="exportAll('png')" id="export-all-png-btn">
-              <span data-i18n="export_all_png">📦 PNG全保存</span>
-            </button>
-            <button class="btn btn-export-all btn-sm" onclick="exportAll('pdf')" id="export-all-pdf-btn">
-              <span data-i18n="export_all_pdf">📦 PDF全保存</span>
-            </button>
-            <button class="btn btn-export-all btn-sm" onclick="exportAll('eps')" id="export-all-eps-btn">
-              <span data-i18n="export_all_eps">📦 EPS全保存</span>
-            </button>
+            <!-- 1枚保存: format chosen from dropdown -->
+            <div class="export-dropdown" id="export-single-dropdown">
+              <button class="btn btn-ghost btn-sm" onclick="toggleExportMenu('single')" id="export-single-btn">
+                <span data-i18n="export_single">📥 1枚保存</span> <span class="caret">▾</span>
+              </button>
+              <div class="export-menu" id="export-single-menu">
+                <button onclick="exportCurrent('png'); closeExportMenus()">PNG</button>
+                <button onclick="exportCurrent('pdf'); closeExportMenus()">PDF</button>
+                <button onclick="exportCurrent('eps'); closeExportMenus()">EPS</button>
+              </div>
+            </div>
+            <!-- 全て保存: format chosen from dropdown -->
+            <div class="export-dropdown" id="export-all-dropdown">
+              <button class="btn btn-export-all btn-sm" onclick="toggleExportMenu('all')" id="export-all-btn">
+                <span data-i18n="export_all">📦 全て保存</span> <span class="caret">▾</span>
+              </button>
+              <div class="export-menu" id="export-all-menu">
+                <button onclick="exportAll('png'); closeExportMenus()">PNG</button>
+                <button onclick="exportAll('pdf'); closeExportMenus()">PDF</button>
+                <button onclick="exportAll('eps'); closeExportMenus()">EPS</button>
+              </div>
+            </div>
             <span class="export-divider"></span>
             <button class="btn btn-export-all btn-sm" onclick="exportCsvZip()" id="export-csv-zip-btn">
               <span data-i18n="export_csv_zip">📁 CSV整理</span>

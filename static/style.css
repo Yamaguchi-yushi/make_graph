@@ -613,6 +613,49 @@ body {
   gap: 12px;
 }
 
+/* ── Export dropdowns (1枚保存 / 全て保存) ──────────────── */
+.export-dropdown {
+  position: relative;
+  display: inline-block;
+}
+.export-dropdown .caret {
+  font-size: .7em;
+  opacity: .8;
+}
+.export-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  z-index: 100;
+  min-width: 120px;
+  overflow: hidden;
+  animation: dropIn .2s var(--ease);
+}
+.export-menu.show {
+  display: flex;
+  flex-direction: column;
+}
+.export-menu button {
+  background: none;
+  border: none;
+  padding: 9px 16px;
+  text-align: left;
+  color: var(--text-secondary);
+  font-size: .85rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.export-menu button:hover {
+  background: var(--accent);
+  color: white;
+}
+
 /* ── Mode toggle (Graph / Legend) ──────────────────────── */
 .mode-toggle {
   flex-shrink: 0;

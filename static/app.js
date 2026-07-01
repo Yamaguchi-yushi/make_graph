@@ -51,6 +51,8 @@ const i18n = {
     "graphs_zip_downloaded": "件のグラフをZIPでダウンロードしました",
     "batch_export_failed": "一括エクスポート失敗: ",
     "export_csv_zip": "📁 CSV整理",
+    "export_single": "📥 1枚保存",
+    "export_all": "📦 全て保存",
     "export_legend": "🏷️ 凡例PDF出力",
     "mode_graph": "📊 グラフ作成",
     "mode_legend": "🏷️ 凡例出力",
@@ -129,6 +131,8 @@ const i18n = {
     "graphs_zip_downloaded": " graphs downloaded as ZIP",
     "batch_export_failed": "Batch export failed: ",
     "export_csv_zip": "📁 Organize CSV",
+    "export_single": "📥 Save one",
+    "export_all": "📦 Save all",
     "export_legend": "🏷️ Export Legend PDF",
     "mode_graph": "📊 Graph",
     "mode_legend": "🏷️ Legend",
@@ -207,6 +211,8 @@ const i18n = {
     "graphs_zip_downloaded": " graphiques téléchargés en ZIP",
     "batch_export_failed": "Échec de l'exportation groupée : ",
     "export_csv_zip": "📁 Organiser CSV",
+    "export_single": "📥 Enregistrer 1",
+    "export_all": "📦 Tout enregistrer",
     "export_legend": "🏷️ Exporter la légende PDF",
     "mode_graph": "📊 Graphique",
     "mode_legend": "🏷️ Légende",
@@ -262,7 +268,28 @@ document.addEventListener("click", (e) => {
   if (dropdown && !dropdown.contains(e.target)) {
     document.getElementById("lang-menu").classList.remove("show");
   }
+  // Export dropdowns: close when clicking outside either one
+  const single = document.getElementById("export-single-dropdown");
+  const all = document.getElementById("export-all-dropdown");
+  if ((!single || !single.contains(e.target)) &&
+      (!all || !all.contains(e.target))) {
+    closeExportMenus();
+  }
 });
+
+function closeExportMenus() {
+  document.getElementById("export-single-menu")?.classList.remove("show");
+  document.getElementById("export-all-menu")?.classList.remove("show");
+}
+
+function toggleExportMenu(which) {
+  const target = document.getElementById(
+    which === "single" ? "export-single-menu" : "export-all-menu");
+  const other = document.getElementById(
+    which === "single" ? "export-all-menu" : "export-single-menu");
+  other?.classList.remove("show");
+  target?.classList.toggle("show");
+}
 
 function applyTranslations() {
   document.querySelectorAll("[data-i18n]").forEach(el => {
