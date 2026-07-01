@@ -901,6 +901,8 @@ def export_csv_zip():
     agent_count = data.get("agent_count", session.get("agent_count", ""))
     category = data.get("category", "")
     memo = data.get("memo", "")
+    # Colors live client-side only; the client sends {name: color}.
+    colors_by_name = data.get("colors_by_name", {})
 
     # Build root folder name
     root_parts = []
@@ -916,13 +918,24 @@ def export_csv_zip():
 
     zip_buf = io.BytesIO()
     with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for method in session["methods"]:
+        for order, method in enumerate(session["methods"]):
             method_name = method["name"]
+            safe_method = re.sub(r'[<>:"/\\|?*]', '_', method_name)
+
+            # Per-folder metadata: each method folder carries its own color and
+            # order so re-import can restore them. Folder name stays the method
+            # name only; non-CSV files are skipped by the import scan.
+            meta = {
+                "name": method_name,
+                "color": colors_by_name.get(method_name, ""),
+                "order": order,
+            }
+            zf.writestr(f"{root_folder}/{safe_method}/_meta.json",
+                        json.dumps(meta, ensure_ascii=False, indent=2))
+
             for f in method["files"]:
-                # Sanitize folder/file names for ZIP
-                safe_method = re.sub(r'[<>:"/\\|?*]', '_', method_name)
                 filename = f["filename"]
-                
+
                 # Extract run name from filename to group by execution
                 name_noext = os.path.splitext(filename)[0]
                 pos = name_noext.find("-tag-")
@@ -931,7 +944,7 @@ def export_csv_zip():
                 else:
                     run_name = name_noext
                 safe_run_name = re.sub(r'[<>:"/\\|?*]', '_', run_name)
-                
+
                 path_in_zip = f"{root_folder}/{safe_method}/{safe_run_name}/{filename}"
                 if "raw_bytes" in f:
                     zf.writestr(path_in_zip, f["raw_bytes"])

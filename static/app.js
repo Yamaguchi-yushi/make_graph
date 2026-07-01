@@ -1317,6 +1317,12 @@ async function exportCsvZip() {
   }
 
   const params = getParams();
+  // Colors are client-side only; send them by method name so the export can
+  // save each method's color into its per-folder _meta.json.
+  const colorsByName = {};
+  state.methods.forEach(m => {
+    colorsByName[m.name] = m.color || COLORS[m.color_index % COLORS.length];
+  });
   toast(t("csv_exporting"), "info");
 
   try {
@@ -1329,6 +1335,7 @@ async function exportCsvZip() {
         agent_count: params.agent_count,
         category: params.category,
         memo: params.memo,
+        colors_by_name: colorsByName,
       }),
     });
 
@@ -1366,13 +1373,21 @@ async function handleCsvFolderImport(event) {
   //       or: root/method_name/file.csv            (3 parts)
   //       or: method_name/file.csv                 (2 parts, if immediate subfolders selected)
   const methodGroups = {};
+  const metaFiles = [];  // {methodName, file} for per-folder _meta.json
   let addedCount = 0;
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    if (!file.name.endsWith('.csv') && !file.name.endsWith('.CSV')) continue;
 
     const parts = file.webkitRelativePath.split('/');
+
+    // Per-folder metadata file: {root}/{method}/_meta.json → method is parent dir
+    if (file.name === "_meta.json") {
+      if (parts.length >= 2) metaFiles.push({ methodName: parts[parts.length - 2], file });
+      continue;
+    }
+
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.CSV')) continue;
 
     let methodName;
     if (parts.length >= 4) {
@@ -1431,6 +1446,27 @@ async function handleCsvFolderImport(event) {
         document.getElementById("param-agent-count").value = result.agent_count;
       }
     }
+
+    // Restore color + order from per-folder _meta.json (if present)
+    const metaByMethod = {};
+    for (const { methodName, file } of metaFiles) {
+      try {
+        metaByMethod[methodName] = JSON.parse(await file.text());
+      } catch (e) { /* ignore malformed _meta.json */ }
+    }
+    if (Object.keys(metaByMethod).length) {
+      state.methods.forEach(m => {
+        const meta = metaByMethod[m.name];
+        if (meta && meta.color) m.color = meta.color;
+      });
+      const orderOf = (m) => {
+        const o = metaByMethod[m.name] && metaByMethod[m.name].order;
+        return (o === undefined || o === null) ? Number.MAX_SAFE_INTEGER : o;
+      };
+      state.methods.sort((a, b) => orderOf(a) - orderOf(b));
+      await apiReorderMethods(state.methods.map(m => m.id));
+    }
+
     toast(`${addedCount}${t("csv_folder_imported")}`, "success");
   } catch (err) {
     toast(`${t("error_prefix")}${err.message}`, "error");
