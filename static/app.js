@@ -1373,7 +1373,7 @@ async function handleCsvFolderImport(event) {
   //       or: root/method_name/file.csv            (3 parts)
   //       or: method_name/file.csv                 (2 parts, if immediate subfolders selected)
   const methodGroups = {};
-  const metaFiles = [];  // {methodName, file} for per-folder _meta.json
+  const metaFiles = [];  // root _meta.json manifest(s)
   let addedCount = 0;
 
   for (let i = 0; i < files.length; i++) {
@@ -1381,9 +1381,9 @@ async function handleCsvFolderImport(event) {
 
     const parts = file.webkitRelativePath.split('/');
 
-    // Per-folder metadata file: {root}/{method}/_meta.json → method is parent dir
+    // Manifest at the root: {root}/_meta.json → holds all methods' color/order
     if (file.name === "_meta.json") {
-      if (parts.length >= 2) metaFiles.push({ methodName: parts[parts.length - 2], file });
+      metaFiles.push(file);
       continue;
     }
 
@@ -1447,11 +1447,16 @@ async function handleCsvFolderImport(event) {
       }
     }
 
-    // Restore color + order from per-folder _meta.json (if present)
+    // Restore color + order from the root _meta.json manifest (if present)
     const metaByMethod = {};
-    for (const { methodName, file } of metaFiles) {
+    for (const file of metaFiles) {
       try {
-        metaByMethod[methodName] = JSON.parse(await file.text());
+        const obj = JSON.parse(await file.text());
+        const list = Array.isArray(obj.methods) ? obj.methods
+                   : (obj.name ? [obj] : []);  // tolerate a single-entry object
+        for (const e of list) {
+          if (e && e.name) metaByMethod[e.name] = e;
+        }
       } catch (e) { /* ignore malformed _meta.json */ }
     }
     if (Object.keys(metaByMethod).length) {

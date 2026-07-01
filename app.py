@@ -918,20 +918,24 @@ def export_csv_zip():
 
     zip_buf = io.BytesIO()
     with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for order, method in enumerate(session["methods"]):
+        # Single manifest at the root preserves every method's color + order so
+        # re-import can restore them. Folder names stay the method name only;
+        # non-CSV files are skipped by the import scan.
+        manifest = {
+            "version": 1,
+            "methods": [
+                {"name": m["name"],
+                 "color": colors_by_name.get(m["name"], ""),
+                 "order": i}
+                for i, m in enumerate(session["methods"])
+            ],
+        }
+        zf.writestr(f"{root_folder}/_meta.json",
+                    json.dumps(manifest, ensure_ascii=False, indent=2))
+
+        for method in session["methods"]:
             method_name = method["name"]
             safe_method = re.sub(r'[<>:"/\\|?*]', '_', method_name)
-
-            # Per-folder metadata: each method folder carries its own color and
-            # order so re-import can restore them. Folder name stays the method
-            # name only; non-CSV files are skipped by the import scan.
-            meta = {
-                "name": method_name,
-                "color": colors_by_name.get(method_name, ""),
-                "order": order,
-            }
-            zf.writestr(f"{root_folder}/{safe_method}/_meta.json",
-                        json.dumps(meta, ensure_ascii=False, indent=2))
 
             for f in method["files"]:
                 filename = f["filename"]
