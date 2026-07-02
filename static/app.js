@@ -961,6 +961,12 @@ async function renderGraph() {
       }
     }
 
+    // Order the stat cards to match the left method list (top to bottom)
+    const methodOrder = new Map(state.methods.map((m, i) => [m.id, i]));
+    computedStats.sort((a, b) =>
+      (methodOrder.has(a.method_id) ? methodOrder.get(a.method_id) : Number.MAX_SAFE_INTEGER) -
+      (methodOrder.has(b.method_id) ? methodOrder.get(b.method_id) : Number.MAX_SAFE_INTEGER));
+
     if (computedStats.length > 0) {
       statsContainer.style.display = "block";
       statsContent.innerHTML = "";
