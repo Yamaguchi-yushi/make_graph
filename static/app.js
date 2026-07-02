@@ -13,8 +13,8 @@ const i18n = {
     "height": "高さ",
     "step_min": "ステップ最小",
     "step_max": "ステップ最大",
-    "ex_step_min": "例: 0, 1M",
-    "ex_step_max": "例: 8M",
+    "ex_step_min": "例: 0",
+    "ex_step_max": "例: 8",
     "axis_label": "軸ラベル",
     "axis_tick": "軸の数値",
     "legend_size": "凡例",
@@ -93,8 +93,8 @@ const i18n = {
     "height": "Height",
     "step_min": "Min Step",
     "step_max": "Max Step",
-    "ex_step_min": "e.g., 0, 1M",
-    "ex_step_max": "e.g., 8M",
+    "ex_step_min": "e.g., 0",
+    "ex_step_max": "e.g., 8",
     "axis_label": "Axis Label Size",
     "axis_tick": "Tick Size",
     "legend_size": "Legend Size",
@@ -173,8 +173,8 @@ const i18n = {
     "height": "Hauteur",
     "step_min": "Pas min",
     "step_max": "Pas max",
-    "ex_step_min": "ex. 0, 1M",
-    "ex_step_max": "ex. 8M",
+    "ex_step_min": "ex. 0",
+    "ex_step_max": "ex. 8",
     "axis_label": "Taille des labels",
     "axis_tick": "Taille des graduations",
     "legend_size": "Taille de la légende",
@@ -358,6 +358,16 @@ function parseStepValue(s) {
   return isNaN(v) ? null : v;
 }
 
+// Step inputs default to millions (the UI shows an "M" suffix), so a bare
+// number like "8" means 8,000,000. An explicit K/M/B suffix is still honored.
+function parseStepM(s) {
+  if (!s) return null;
+  const t = s.trim().toUpperCase();
+  if (/[KMB]$/.test(t)) return parseStepValue(t);
+  const v = parseFloat(t);
+  return isNaN(v) ? null : v * 1e6;
+}
+
 function getParams() {
   // Build per-method color map
   const methodColors = {};
@@ -367,8 +377,8 @@ function getParams() {
   return {
     width: parseFloat(document.getElementById("param-width").value) || 20,
     height: parseFloat(document.getElementById("param-height").value) || 10,
-    min_step: parseStepValue(document.getElementById("param-min-step").value),
-    max_step: parseStepValue(document.getElementById("param-max-step").value),
+    min_step: parseStepM(document.getElementById("param-min-step").value),
+    max_step: parseStepM(document.getElementById("param-max-step").value),
     line_width: parseFloat(document.getElementById("param-line-width").value) || 1.2,
     smoothing: parseFloat(document.getElementById("param-smoothing").value) || 0,
     font_label: parseInt(document.getElementById("param-font-label").value) || 35,

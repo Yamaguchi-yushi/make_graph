@@ -613,6 +613,31 @@ body {
   gap: 12px;
 }
 
+/* ── Input with unit suffix (e.g. step "M") ────────────── */
+.input-suffix {
+  display: flex;
+  align-items: stretch;
+}
+.input-suffix input {
+  flex: 1;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.input-suffix .suffix {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: none;
+  border-top-right-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: .82rem;
+  font-weight: 600;
+}
+
 /* ── Export dropdowns (1枚保存 / 全て保存) ──────────────── */
 .export-dropdown {
   position: relative;
