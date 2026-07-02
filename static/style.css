@@ -820,6 +820,8 @@ body {
 
 .graph-container {
   flex: 1;
+  min-height: 0; /* allow the inner preview-wrapper to scroll instead of the
+                    tall image+stats overflowing and being clipped */
   position: relative;
   display: flex;
   flex-direction: column;
